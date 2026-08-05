@@ -472,52 +472,64 @@ function updateTableSection(section) {
     });
 }
 
+// Escape a value for safe interpolation into an HTML attribute/text context
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[ch]));
+}
+window.escapeHtml = escapeHtml;
+
 // Create table row based on section
 function createTableRow(section, item) {
     console.log('createTableRow function called - Creating table row for section:', section);
     const row = document.createElement('tr');
-    
+
     switch (section) {
         case 'investments':
             row.innerHTML = `
                 <td><select class="form-select" name="investment_name" oninput="debouncedUpdate()">
                     ${getInvestmentOptions(item.name)}
                 </select></td>
-                <td><input type="number" class="form-control" name="investment_value" value="${item.value || 0}" step="0.01" min="0" oninput="debouncedUpdate()"></td>
-                <td><input type="number" class="form-control" name="investment_return" value="${item.return || 0}" step="0.1" oninput="debouncedUpdate()"></td>
+                <td><input type="number" class="form-control" name="investment_value" value="${escapeHtml(item.value || 0)}" step="0.01" min="0" oninput="debouncedUpdate()"></td>
+                <td><input type="number" class="form-control" name="investment_return" value="${escapeHtml(item.return || 0)}" step="0.1" oninput="debouncedUpdate()"></td>
                 <td><select class="form-select" name="investment_risk" oninput="debouncedUpdate()">
                     <option value="low" ${item.risk === 'low' ? 'selected' : ''}>Low</option>
                     <option value="medium" ${item.risk === 'medium' ? 'selected' : ''}>Medium</option>
                     <option value="high" ${item.risk === 'high' ? 'selected' : ''}>High</option>
                 </select></td>
-                <td><input type="text" class="form-control" name="investment_remark" value="${item.remark || ''}" maxlength="50" oninput="debouncedUpdate()"></td>
+                <td><input type="text" class="form-control" name="investment_remark" value="${escapeHtml(item.remark || '')}" maxlength="50" oninput="debouncedUpdate()"></td>
                 <td><button class="remove-btn" onclick="removeRow(this, 'investments')">X</button></td>
             `;
             break;
-            
+
         case 'income':
             row.innerHTML = `
                 <td><select class="form-select" name="income_name" oninput="debouncedUpdate()">
                     ${getIncomeOptions(item.name)}
                 </select></td>
-                <td><input type="number" class="form-control" name="income_value" value="${item.value || 0}" step="0.01" min="0" oninput="debouncedUpdate()"></td>
-                <td><input type="text" class="form-control" name="income_remark" value="${item.remark || ''}" maxlength="50" oninput="debouncedUpdate()"></td>
+                <td><input type="number" class="form-control" name="income_value" value="${escapeHtml(item.value || 0)}" step="0.01" min="0" oninput="debouncedUpdate()"></td>
+                <td><input type="text" class="form-control" name="income_remark" value="${escapeHtml(item.remark || '')}" maxlength="50" oninput="debouncedUpdate()"></td>
                 <td><button class="remove-btn" onclick="removeRow(this, 'income')">X</button></td>
             `;
             break;
-            
+
         case 'loans':
             row.innerHTML = `
                 <td><select class="form-select" name="loan_name" oninput="debouncedUpdate()">
                     ${getLoanOptions(item.name)}
                 </select></td>
-                <td><input type="number" class="form-control" name="loan_value" value="${item.value || 0}" step="0.01" min="0" oninput="debouncedUpdate()"></td>
-                <td><input type="number" class="form-control" name="loan_interest" value="${item.interest || 0}" step="0.1" min="0" oninput="debouncedUpdate()"></td>
-                <td><input type="text" class="form-control" name="loan_remark" value="${item.remark || ''}" maxlength="50" oninput="debouncedUpdate()"></td>
+                <td><input type="number" class="form-control" name="loan_value" value="${escapeHtml(item.value || 0)}" step="0.01" min="0" oninput="debouncedUpdate()"></td>
+                <td><input type="number" class="form-control" name="loan_interest" value="${escapeHtml(item.interest || 0)}" step="0.1" min="0" oninput="debouncedUpdate()"></td>
+                <td><input type="text" class="form-control" name="loan_remark" value="${escapeHtml(item.remark || '')}" maxlength="50" oninput="debouncedUpdate()"></td>
                 <td><button class="remove-btn" onclick="removeRow(this, 'loans')">X</button></td>
             `;
             break;
-            
+
         case 'expenses':
             row.innerHTML = `
                 <td><select class="form-select" name="expense_category" oninput="debouncedUpdate()">
@@ -527,23 +539,23 @@ function createTableRow(section, item) {
                     <option value="Recurring" ${item.type === 'Recurring' ? 'selected' : ''}>Recurring</option>
                     <option value="One-time" ${item.type === 'One-time' ? 'selected' : ''}>One-time</option>
                 </select></td>
-                <td><input type="number" class="form-control" name="expense_value" value="${item.value || 0}" step="0.01" min="0" oninput="debouncedUpdate()"></td>
-                <td><input type="text" class="form-control" name="expense_remark" value="${item.remark || ''}" maxlength="50" oninput="debouncedUpdate()"></td>
+                <td><input type="number" class="form-control" name="expense_value" value="${escapeHtml(item.value || 0)}" step="0.01" min="0" oninput="debouncedUpdate()"></td>
+                <td><input type="text" class="form-control" name="expense_remark" value="${escapeHtml(item.remark || '')}" maxlength="50" oninput="debouncedUpdate()"></td>
                 <td><button class="remove-btn" onclick="removeRow(this, 'expenses')">X</button></td>
             `;
             break;
-            
+
         case 'goals':
             row.innerHTML = `
-                <td><input type="text" class="form-control" name="goal_name" value="${item.name || ''}" oninput="debouncedUpdate()"></td>
-                <td><input type="number" class="form-control" name="goal_target" value="${item.target || 0}" step="0.01" min="0" oninput="debouncedUpdate()"></td>
-                <td><input type="text" class="form-control" name="goal_time" readonly value="${item.time || 'N/A'}"></td>
+                <td><input type="text" class="form-control" name="goal_name" value="${escapeHtml(item.name || '')}" oninput="debouncedUpdate()"></td>
+                <td><input type="number" class="form-control" name="goal_target" value="${escapeHtml(item.target || 0)}" step="0.01" min="0" oninput="debouncedUpdate()"></td>
+                <td><input type="text" class="form-control" name="goal_time" readonly value="${escapeHtml(item.time || 'N/A')}"></td>
                 <td><div class="progress"><div class="progress-bar bg-success" style="width: 0%"></div></div></td>
                 <td><button class="remove-btn" onclick="removeRow(this, 'goals')">X</button></td>
             `;
             break;
     }
-    
+
     return row;
 }
 
