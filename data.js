@@ -41,6 +41,50 @@ function getCurrentUser() {
     return email || null;
 }
 
+// One-time migration: old keys embedded the JWT (financeData_<email>_<token>),
+// which meant every re-login orphaned the previous local backup since the
+// token changes each session. Consolidate any legacy entries for this email
+// into the new stable key (financeData_<email>) before removing them, keeping
+// whichever legacy entry has the newest timestamp. Safe no-op once migrated.
+function migrateLegacyLocalBackups(email) {
+    try {
+        const newKey = `financeData_${email}`;
+        const legacyPrefix = `financeData_${email}_`;
+        const legacyKeys = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith(legacyPrefix)) {
+                legacyKeys.push(key);
+            }
+        }
+        if (legacyKeys.length === 0) return;
+
+        let newest = null;
+        let newestTimestamp = -Infinity;
+        legacyKeys.forEach((key) => {
+            try {
+                const parsed = JSON.parse(localStorage.getItem(key));
+                const ts = parsed?.timestamp ? new Date(parsed.timestamp).getTime() : 0;
+                if (ts >= newestTimestamp) {
+                    newestTimestamp = ts;
+                    newest = parsed;
+                }
+            } catch (error) {
+                console.warn('migrateLegacyLocalBackups: failed to parse', key, error);
+            }
+        });
+
+        if (newest && !localStorage.getItem(newKey)) {
+            localStorage.setItem(newKey, JSON.stringify(newest));
+            console.log('migrateLegacyLocalBackups: migrated newest legacy backup to', newKey);
+        }
+
+        legacyKeys.forEach((key) => localStorage.removeItem(key));
+    } catch (error) {
+        console.error('migrateLegacyLocalBackups: Error', error);
+    }
+}
+
 function getUserDataKey() {
     console.log('getUserDataKey function called');
     const token = getToken();
@@ -49,7 +93,8 @@ function getUserDataKey() {
         console.warn('Missing authentication credentials');
         return null;
     }
-    return `financeData_${email}_${token}`;
+    migrateLegacyLocalBackups(email);
+    return `financeData_${email}`;
 }
 
 // Enhanced save data with retry logic
