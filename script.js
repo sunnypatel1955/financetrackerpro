@@ -1213,7 +1213,7 @@ function showExpenseAnalysis() {
         .forEach(([category, amount]) => {
             const percentage = totalExpenses > 0 ? (amount / totalExpenses * 100).toFixed(1) : 0;
             content += `<tr>
-                <td>${category}</td>
+                <td>${escapeHtml(category)}</td>
                 <td>${formatCurrency(amount)}</td>
                 <td>${percentage}%</td>
             </tr>`;

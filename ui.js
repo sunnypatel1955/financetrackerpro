@@ -428,7 +428,7 @@ function displayNextNotification() {
     notification.className = `notification ${type}`;
     notification.innerHTML = `
         <i class="fas fa-${getNotificationIcon(type)} me-2"></i>
-        <span>${message}</span>
+        <span>${escapeHtml(message)}</span>
     `;
     
     const activeNotifications = document.querySelectorAll('.notification');
