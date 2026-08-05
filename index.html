@@ -1140,6 +1140,11 @@
     </div>
 
     <script>
+        // Match data.js: use local API when running on localhost, otherwise production
+        const API_BASE_URL = window.location.hostname === 'localhost'
+            ? 'http://localhost:3000/api'
+            : 'https://finance-tracker-pro-server.onrender.com/api';
+
         // Enhanced authentication functions
         function togglePassword(fieldId) {
             const input = document.getElementById(fieldId);
@@ -1437,7 +1442,7 @@
             loginBtn.classList.add('btn-loading');
             
             try {
-                const res = await fetch('https://finance-tracker-pro-server.onrender.com/api/login', {
+                const res = await fetch(`${API_BASE_URL}/login`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ email, password, rememberMe }),
@@ -1512,7 +1517,7 @@
             registerBtn.classList.add('btn-loading');
             
             try {
-                const res = await fetch('https://finance-tracker-pro-server.onrender.com/api/register', {
+                const res = await fetch(`${API_BASE_URL}/register`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ fullName, email, password }),
