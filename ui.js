@@ -675,29 +675,6 @@ function debugUpdate() {
     console.log('After update - data.initial_cash:', data?.initial_cash);
     console.log('After update - overview net worth element:', document.getElementById('netWorth')?.value);
 }
-// Add delete function if missing
-function deleteMonthlyRecord(date) {
-    console.log('deleteMonthlyRecord function called');
-    if (confirm('Delete this monthly record? This action cannot be undone.')) {
-        if (window.historicalNetWorth) {
-            window.historicalNetWorth = window.historicalNetWorth.filter(r => r.date !== date);
-            updateMonthlyRecordsTable();
-            
-            if (typeof window.updateHistoricalChart === 'function') {
-                window.updateHistoricalChart();
-            }
-            if (typeof window.updateInsights === 'function') {
-                window.updateInsights();
-            }
-            if (typeof window.saveData === 'function') {
-                window.saveData();
-            }
-            
-            showNotification('Monthly record deleted', 'success');
-        }
-    }
-}
-
 // Delete monthly record
 function deleteMonthlyRecord(date) {
     console.log('deleteMonthlyRecord function called');
@@ -944,5 +921,3 @@ window.declineCookies = declineCookies;
 window.showCookieSettings = showCookieSettings;
 window.saveCookieSettings = saveCookieSettings;
 window.hasCookieConsent = hasCookieConsent;
-window.updateMonthlyRecordsTable = updateMonthlyRecordsTable;
-window.deleteMonthlyRecord = deleteMonthlyRecord;

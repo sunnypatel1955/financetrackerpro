@@ -2,7 +2,7 @@ function adjustColor(color, factor) {
     console.log('adjustColor function called');
     const hex = color.replace('#', '');
     const r = parseInt(hex.substring(0, 2), 16);
-    const g = parseInt(hex.substring(2, 4), 6);
+    const g = parseInt(hex.substring(2, 4), 16);
     const b = parseInt(hex.substring(4, 6), 16);
     
     const adjust = (value) => Math.min(255, Math.max(0, Math.round(value * factor)));

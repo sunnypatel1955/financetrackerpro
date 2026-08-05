@@ -1411,8 +1411,6 @@ window.showLoanCalculator = showLoanCalculator;
 window.showExpenseAnalysis = showExpenseAnalysis;
 window.showGoalPlanner = showGoalPlanner;
 window.handleFileImport = handleFileImport;
-// Add this to your script.js to debug
-window.debugChartsForPDF = debugChartsForPDF;
 window.debugChartsForPDF = debugChartsForPDF;
 window.formatCurrency = formatCurrency; // If not already exported elsewhere
 window.showLoadingState = showLoadingState; // If defined in your code

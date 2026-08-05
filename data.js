@@ -227,8 +227,9 @@ async function loadData() {
         // Apply loaded data
         data = serverData.data || getDefaultData();
         historicalNetWorth = serverData.historicalNetWorth || [];
-        
+
         // CRITICAL: Add this line to sync both references
+        window.data = data;
         window.historicalNetWorth = historicalNetWorth;
         
         // Update UI
@@ -254,8 +255,9 @@ async function loadData() {
         // Initialize with default data
         data = getDefaultData();
         historicalNetWorth = [];
-        
+
         // CRITICAL: Add this line here too
+        window.data = data;
         window.historicalNetWorth = historicalNetWorth;
         
         updateUIWithData();
@@ -305,8 +307,9 @@ function loadFromLocalStorage() {
         
         data = parsedData.data || getDefaultData();
         historicalNetWorth = parsedData.historicalNetWorth || [];
-        
+
         // CRITICAL: Add this line to sync both references
+        window.data = data;
         window.historicalNetWorth = historicalNetWorth;
         
         updateUIWithData();
@@ -637,7 +640,9 @@ async function performReset() {
         // Reset to default data
         data = getDefaultData();
         historicalNetWorth = [];
-        
+        window.data = data;
+        window.historicalNetWorth = historicalNetWorth;
+
         // Clear UI
         clearAllTables();
         const initialCashInput = document.getElementById('initial_cash');
@@ -830,7 +835,9 @@ function importData() {
                 // Apply imported data
                 data = importedData;
                 historicalNetWorth = backup.historicalNetWorth || [];
-                
+                window.data = data;
+                window.historicalNetWorth = historicalNetWorth;
+
                 // Save to server and local storage
                 await saveData();
                 
@@ -873,7 +880,8 @@ function undoData() {
         // Restore previous data
         data = JSON.parse(JSON.stringify(previousData));
         previousData = temp;
-        
+        window.data = data;
+
         // Update UI
         updateUIWithData();
         
