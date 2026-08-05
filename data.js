@@ -504,14 +504,44 @@ function updateUIWithData() {
 }
 
 // Update table section
+// Empty-state copy per table — colspan must match each table's column count
+const TABLE_EMPTY_STATES = {
+    investments: { colspan: 6, icon: 'fa-chart-line', message: 'No investments yet.', cta: "addRow('investments', event)", ctaLabel: 'Add Investment' },
+    loans: { colspan: 5, icon: 'fa-hand-holding-usd', message: 'No loans recorded.', cta: "addRow('loans', event)", ctaLabel: 'Add Loan' },
+    income: { colspan: 4, icon: 'fa-money-bill-wave', message: 'No income sources yet.', cta: "addRow('income', event)", ctaLabel: 'Add Income' },
+    expenses: { colspan: 5, icon: 'fa-shopping-cart', message: 'No expenses recorded yet.', cta: "addRow('expenses', event)", ctaLabel: 'Add Expense' },
+    goals: { colspan: 5, icon: 'fa-bullseye', message: 'No goals set yet.', cta: 'addGoal(event)', ctaLabel: 'Add Goal' }
+};
+
 function updateTableSection(section) {
     console.log('updateTableSection function called - Updating table section:', section);
     const tbody = document.getElementById(section)?.querySelector('tbody');
     if (!tbody) return;
-    
+
     tbody.innerHTML = '';
     const items = data[section] || [];
-    
+
+    if (items.length === 0) {
+        const config = TABLE_EMPTY_STATES[section];
+        if (config) {
+            const row = document.createElement('tr');
+            row.className = 'table-empty-state';
+            row.innerHTML = `
+                <td colspan="${config.colspan}">
+                    <div class="empty-state">
+                        <i class="fas ${config.icon}"></i>
+                        <p>${config.message}</p>
+                        <button class="btn btn-sm btn-outline-primary" onclick="${config.cta}">
+                            <i class="fas fa-plus me-1"></i>${config.ctaLabel}
+                        </button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(row);
+        }
+        return;
+    }
+
     items.forEach(item => {
         const row = createTableRow(section, item);
         if (row) {

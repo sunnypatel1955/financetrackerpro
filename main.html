@@ -7,7 +7,9 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <!-- External library scripts -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.js"></script>
@@ -26,8 +28,12 @@
                 <i class="fas fa-bars"></i>
             </button>
             <h1 class="page-title">Dashboard</h1>
+            <div class="top-bar-networth" title="Current net worth">
+                <span class="top-bar-networth-label">Net Worth</span>
+                <span id="topBarNetWorth">₹0</span>
+            </div>
         </div>
-        
+
         <div class="top-bar-right">
             <div id="userName" class="user-welcome"></div>
             
@@ -60,7 +66,21 @@
         <div class="finance-tracker-title">
             <i class="fas fa-chart-line me-2"></i>Finance Tracker Pro
         </div>
-        
+
+        <nav class="sidebar-section sidebar-jumpnav" aria-label="Jump to section">
+            <label class="form-label sidebar-section-label">Jump To</label>
+            <a href="#section-overview">Overview</a>
+            <a href="#section-health-score">Health Score</a>
+            <a href="#section-investments">Investments</a>
+            <a href="#section-loans">Loans</a>
+            <a href="#section-income">Income</a>
+            <a href="#section-expenses">Expenses</a>
+            <a href="#section-goals">Goals</a>
+            <a href="#section-charts">Charts</a>
+            <a href="#section-monthly-records">Monthly Records</a>
+            <a href="#section-insights">Insights</a>
+        </nav>
+
         <div class="sidebar-section">
             <label class="form-label sidebar-section-label">Currency</label>            <select class="form-select mb-3" id="currency" onchange="window.debouncedUpdate && window.debouncedUpdate()">
                 <option value="INR" selected>🇮🇳 INR (₹)</option>
@@ -127,7 +147,7 @@
         <div class="container-fluid">
             <div class="row g-4">
                 <!-- Enhanced Overview Section -->
-                <div class="col-12">
+                <div class="col-12" id="section-overview">
                     <div class="card">
                         <div class="card-header overview-header">
                             <div class="d-flex align-items-center">
@@ -144,28 +164,28 @@
                                     <div class="col-lg-3 col-md-6">
                                         <div class="overview-metric">
                                             <label class="form-label fw-semibold">💰 Liquid Cash Available</label>
-                                            <input type="number" class="form-control form-control-lg" id="initial_cash" 
+                                            <input type="number" class="form-control form-control-lg" id="initial_cash"
                                                    placeholder="e.g., 50,000" step="0.01" min="0" oninput="window.debouncedUpdate && window.debouncedUpdate()">
                                         </div>
                                     </div>
                                     <div class="col-lg-3 col-md-6">
                                         <div class="overview-metric">
                                             <label class="form-label fw-semibold">📊 Current Net Worth</label>
-                                            <input type="text" class="form-control form-control-lg overview-display" 
+                                            <input type="text" class="form-control form-control-lg overview-display"
                                                    id="netWorth" readonly value="₹0">
                                         </div>
                                     </div>
                                     <div class="col-lg-3 col-md-6">
                                         <div class="overview-metric">
                                             <label class="form-label fw-semibold">📈 Total Investments</label>
-                                            <input type="text" class="form-control form-control-lg overview-display positive" 
+                                            <input type="text" class="form-control form-control-lg overview-display positive"
                                                    id="totalInvestments" readonly value="₹0">
                                         </div>
                                     </div>
                                     <div class="col-lg-3 col-md-6">
                                         <div class="overview-metric">
                                             <label class="form-label fw-semibold">💳 Total Loans</label>
-                                            <input type="text" class="form-control form-control-lg overview-display negative" 
+                                            <input type="text" class="form-control form-control-lg overview-display negative"
                                                    id="totalLoans" readonly value="₹0">
                                         </div>
                                     </div>
@@ -175,9 +195,91 @@
                     </div>
                 </div>
 
-                
+                <!-- Financial Health Score — moved up: leads with a judgment,
+                     not just raw tiles, matching how real fintech dashboards
+                     (Mercury, Monarch) surface a summary before the detail. -->
+                <div class="col-12" id="section-health-score">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-heartbeat me-3"></i>
+                                <span class="fw-bold">Financial Health Score</span>
+                            </div>
+                            <button class="toggle-btn" onclick="toggleSection && toggleSection('healthScoreCollapse')" title="Toggle Section">
+                                <i class="fas fa-chevron-up"></i>
+                            </button>
+                        </div>
+                        <div class="collapse show" id="healthScoreCollapse">
+                            <div class="card-body">
+                                <div class="row g-4">
+                                    <div class="col-lg-4">
+                                        <div class="text-center">
+                                            <div id="healthScoreGauge" style="width: 240px; height: 240px; margin: 0 auto;">
+                                                <canvas id="scoreGaugeCanvas" width="240" height="240"></canvas>
+                                            </div>
+                                            <h2 id="healthScoreValue" class="mt-3">0</h2>
+                                            <h4 id="healthScoreGrade" class="mb-0">-</h4>
+                                            <p id="healthScoreLabel" class="text-muted">Calculating...</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-8">
+                                        <h5>Score Breakdown</h5>
+                                        <div class="score-breakdown">
+                                            <div class="score-item mb-3">
+                                                <div class="d-flex justify-content-between mb-1">
+                                                    <span>Savings Rate</span>
+                                                    <span id="savingsRateScore">0/20</span>
+                                                </div>
+                                                <div class="progress" style="height: 10px;">
+                                                    <div id="savingsRateBar" class="progress-bar bg-success" style="width: 0%"></div>
+                                                </div>
+                                            </div>
+                                            <div class="score-item mb-3">
+                                                <div class="d-flex justify-content-between mb-1">
+                                                    <span>Debt Management</span>
+                                                    <span id="debtRatioScore">0/20</span>
+                                                </div>
+                                                <div class="progress" style="height: 10px;">
+                                                    <div id="debtRatioBar" class="progress-bar bg-info" style="width: 0%"></div>
+                                                </div>
+                                            </div>
+                                            <div class="score-item mb-3">
+                                                <div class="d-flex justify-content-between mb-1">
+                                                    <span>Emergency Fund</span>
+                                                    <span id="emergencyFundScore">0/20</span>
+                                                </div>
+                                                <div class="progress" style="height: 10px;">
+                                                    <div id="emergencyFundBar" class="progress-bar bg-warning" style="width: 0%"></div>
+                                                </div>
+                                            </div>
+                                            <div class="score-item mb-3">
+                                                <div class="d-flex justify-content-between mb-1">
+                                                    <span>Investment Diversity</span>
+                                                    <span id="investmentDiversityScore">0/20</span>
+                                                </div>
+                                                <div class="progress" style="height: 10px;">
+                                                    <div id="investmentDiversityBar" class="progress-bar bg-primary" style="width: 0%"></div>
+                                                </div>
+                                            </div>
+                                            <div class="score-item mb-3">
+                                                <div class="d-flex justify-content-between mb-1">
+                                                    <span>Net Worth Growth</span>
+                                                    <span id="netWorthGrowthScore">0/20</span>
+                                                </div>
+                                                <div class="progress" style="height: 10px;">
+                                                    <div id="netWorthGrowthBar" class="progress-bar bg-danger" style="width: 0%"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Enhanced Investments Section -->
-                <div class="col-12">
+                <div class="col-12" id="section-investments">
                     <div class="card">
                         <div class="card-header investments">
                             <div class="d-flex align-items-center">
@@ -201,12 +303,12 @@
                                 <table class="table" id="investments">
                                     <thead>
                                         <tr>
-                                            <th><i class="fas fa-tag me-1"></i>Investment Name</th>
-                                            <th><i class="fas fa-money-bill-wave me-1"></i>Current Value</th>
-                                            <th><i class="fas fa-percentage me-1"></i>Expected Return (%)</th>
-                                            <th><i class="fas fa-shield-alt me-1"></i>Risk Level</th>
+                                            <th class="col-name"><i class="fas fa-tag me-1"></i>Investment Name</th>
+                                            <th class="col-num"><i class="fas fa-money-bill-wave me-1"></i>Current Value</th>
+                                            <th class="col-num col-pct"><i class="fas fa-percentage me-1"></i>Expected Return (%)</th>
+                                            <th class="col-fixed-sm"><i class="fas fa-shield-alt me-1"></i>Risk Level</th>
                                             <th><i class="fas fa-comment me-1"></i>Notes</th>
-                                            <th><i class="fas fa-cog me-1"></i>Actions</th>
+                                            <th class="col-actions"><i class="fas fa-cog me-1"></i>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody></tbody>
@@ -217,7 +319,7 @@
                 </div>
 
                 <!-- Enhanced Loans Section -->
-                <div class="col-12">
+                <div class="col-12" id="section-loans">
                     <div class="card">
                         <div class="card-header loans">
                             <div class="d-flex align-items-center">
@@ -241,11 +343,11 @@
                                 <table class="table loans" id="loans">
                                     <thead>
                                         <tr>
-                                            <th><i class="fas fa-tag me-1"></i>Loan Name</th>
-                                            <th><i class="fas fa-money-bill-wave me-1"></i>Outstanding Amount</th>
-                                            <th><i class="fas fa-percentage me-1"></i>Annual Interest (%)</th>
+                                            <th class="col-name"><i class="fas fa-tag me-1"></i>Loan Name</th>
+                                            <th class="col-num"><i class="fas fa-money-bill-wave me-1"></i>Outstanding Amount</th>
+                                            <th class="col-num col-pct"><i class="fas fa-percentage me-1"></i>Annual Interest (%)</th>
                                             <th><i class="fas fa-comment me-1"></i>Notes</th>
-                                            <th><i class="fas fa-cog me-1"></i>Actions</th>
+                                            <th class="col-actions"><i class="fas fa-cog me-1"></i>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody></tbody>
@@ -256,7 +358,7 @@
                 </div>
 
                 <!-- Enhanced Income Section -->
-                <div class="col-12">
+                <div class="col-12" id="section-income">
                     <div class="card">
                         <div class="card-header income">
                             <div class="d-flex align-items-center">
@@ -277,10 +379,10 @@
                                 <table class="table" id="income">
                                     <thead>
                                         <tr>
-                                            <th><i class="fas fa-source me-1"></i>Income Source</th>
-                                            <th><i class="fas fa-calendar-alt me-1"></i>Monthly Amount</th>
+                                            <th class="col-name"><i class="fas fa-source me-1"></i>Income Source</th>
+                                            <th class="col-num"><i class="fas fa-calendar-alt me-1"></i>Monthly Amount</th>
                                             <th><i class="fas fa-comment me-1"></i>Notes</th>
-                                            <th><i class="fas fa-cog me-1"></i>Actions</th>
+                                            <th class="col-actions"><i class="fas fa-cog me-1"></i>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody></tbody>
@@ -291,7 +393,7 @@
                 </div>
 
                 <!-- Enhanced Expenses Section -->
-                <div class="col-12">
+                <div class="col-12" id="section-expenses">
                     <div class="card">
                         <div class="card-header expenses">
                             <div class="d-flex align-items-center">
@@ -315,11 +417,11 @@
                                 <table class="table expenses" id="expenses">
                                     <thead>
                                         <tr>
-                                            <th><i class="fas fa-tags me-1"></i>Category</th>
-                                            <th><i class="fas fa-layer-group me-1"></i>Type</th>
-                                            <th><i class="fas fa-calendar-alt me-1"></i>Monthly Amount</th>
+                                            <th class="col-name"><i class="fas fa-tags me-1"></i>Category</th>
+                                            <th class="col-fixed-sm"><i class="fas fa-layer-group me-1"></i>Type</th>
+                                            <th class="col-num"><i class="fas fa-calendar-alt me-1"></i>Monthly Amount</th>
                                             <th><i class="fas fa-comment me-1"></i>Notes</th>
-                                            <th><i class="fas fa-cog me-1"></i>Actions</th>
+                                            <th class="col-actions"><i class="fas fa-cog me-1"></i>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody></tbody>
@@ -330,7 +432,7 @@
                 </div>
 
                 <!-- Enhanced Financial Goals Section -->
-                <div class="col-12">
+                <div class="col-12" id="section-goals">
                     <div class="card">
                         <div class="card-header">
                             <div class="d-flex align-items-center">
@@ -354,11 +456,11 @@
                                 <table class="table" id="goals">
                                     <thead>
                                         <tr>
-                                            <th><i class="fas fa-target me-1"></i>Goal Name</th>
-                                            <th><i class="fas fa-money-bill-wave me-1"></i>Target Net Worth</th>
-                                            <th><i class="fas fa-clock me-1"></i>Time to Achieve</th>
-                                            <th><i class="fas fa-chart-line me-1"></i>Progress</th>
-                                            <th><i class="fas fa-cog me-1"></i>Actions</th>
+                                            <th class="col-name"><i class="fas fa-target me-1"></i>Goal Name</th>
+                                            <th class="col-num"><i class="fas fa-money-bill-wave me-1"></i>Target Net Worth</th>
+                                            <th class="col-fixed-sm"><i class="fas fa-clock me-1"></i>Time to Achieve</th>
+                                            <th class="col-progress"><i class="fas fa-chart-line me-1"></i>Progress</th>
+                                            <th class="col-actions"><i class="fas fa-cog me-1"></i>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody></tbody>
@@ -369,7 +471,7 @@
                 </div>
 
                 <!-- Enhanced Visualization Header -->
-                <div class="col-12">
+                <div class="col-12" id="section-charts">
                     <div class="section-header">
                         <h2 class="section-title">
                             <i class="fas fa-chart-bar me-3"></i>
@@ -459,8 +561,9 @@
                     </div>
                 </div>
 
-                <!-- Enhanced Monthly Records Table -->
-                <div class="col-12">
+                <!-- Enhanced Monthly Records Table — collapsed by default,
+                     used less often than the daily-entry tables above it. -->
+                <div class="col-12" id="section-monthly-records">
                     <div class="card">
                         <div class="card-header">
                             <div class="d-flex align-items-center">
@@ -468,20 +571,20 @@
                                 <span class="fw-bold">Monthly Financial Records</span>
                             </div>
                             <button class="toggle-btn" onclick="toggleSection && toggleSection('monthlyRecordsCollapse')" title="Toggle Section">
-                                <i class="fas fa-chevron-up"></i>
+                                <i class="fas fa-chevron-down"></i>
                             </button>
                         </div>
-                        <div class="collapse show" id="monthlyRecordsCollapse">
+                        <div class="collapse" id="monthlyRecordsCollapse">
                             <div class="table-container">
                                 <table class="table" id="monthlyRecords">
                                     <thead>
                                         <tr>
-                                            <th><i class="fas fa-calendar me-1"></i>Month</th>
-                                            <th><i class="fas fa-money-bill-wave me-1"></i>Net Worth</th>
-                                            <th><i class="fas fa-exchange-alt me-1"></i>Change</th>
-                                            <th><i class="fas fa-chart-line me-1"></i>Trend</th>
-                                            <th><i class="fas fa-info-circle me-1"></i>Status</th>
-                                            <th><i class="fas fa-cog me-1"></i>Actions</th>
+                                            <th class="col-name"><i class="fas fa-calendar me-1"></i>Month</th>
+                                            <th class="col-num"><i class="fas fa-money-bill-wave me-1"></i>Net Worth</th>
+                                            <th class="col-fixed-sm"><i class="fas fa-exchange-alt me-1"></i>Change</th>
+                                            <th class="col-fixed-sm"><i class="fas fa-chart-line me-1"></i>Trend</th>
+                                            <th class="col-fixed-sm"><i class="fas fa-info-circle me-1"></i>Status</th>
+                                            <th class="col-actions-wide"><i class="fas fa-cog me-1"></i>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody></tbody>
@@ -491,8 +594,8 @@
                     </div>
                 </div>
 
-                <!-- Replace the existing insights section with this corrected version -->
-<div class="col-12">
+                <!-- AI-Powered Financial Insights -->
+<div class="col-12" id="section-insights">
     <div class="card">
         <div class="card-header">
             <div class="d-flex align-items-center">
@@ -565,87 +668,6 @@
     </div>
 </div>
 
-                                <!-- Financial Health Score -->
-<div class="col-12">
-    <div class="card">
-        <div class="card-header">
-            <div class="d-flex align-items-center">
-                <i class="fas fa-heartbeat me-3"></i>
-                <span class="fw-bold">Financial Health Score</span>
-            </div>
-            <button class="toggle-btn" onclick="toggleSection && toggleSection('healthScoreCollapse')" title="Toggle Section">
-                <i class="fas fa-chevron-up"></i>
-            </button>
-        </div>
-        <div class="collapse show" id="healthScoreCollapse">
-            <div class="card-body">
-                <div class="row g-4">
-                    <div class="col-lg-4">
-                        <div class="text-center">
-                          <!-- Update the canvas in your health score section -->
-<div id="healthScoreGauge" style="width: 240px; height: 240px; margin: 0 auto;">
-    <canvas id="scoreGaugeCanvas" width="240" height="240"></canvas>
-</div>
-                            <h2 id="healthScoreValue" class="mt-3">0</h2>
-                            <h4 id="healthScoreGrade" class="mb-0">-</h4>
-                            <p id="healthScoreLabel" class="text-muted">Calculating...</p>
-                        </div>
-                    </div>
-                    <div class="col-lg-8">
-                        <h5>Score Breakdown</h5>
-                        <div class="score-breakdown">
-                            <div class="score-item mb-3">
-                                <div class="d-flex justify-content-between mb-1">
-                                    <span>Savings Rate</span>
-                                    <span id="savingsRateScore">0/20</span>
-                                </div>
-                                <div class="progress" style="height: 10px;">
-                                    <div id="savingsRateBar" class="progress-bar bg-success" style="width: 0%"></div>
-                                </div>
-                            </div>
-                            <div class="score-item mb-3">
-                                <div class="d-flex justify-content-between mb-1">
-                                    <span>Debt Management</span>
-                                    <span id="debtRatioScore">0/20</span>
-                                </div>
-                                <div class="progress" style="height: 10px;">
-                                    <div id="debtRatioBar" class="progress-bar bg-info" style="width: 0%"></div>
-                                </div>
-                            </div>
-                            <div class="score-item mb-3">
-                                <div class="d-flex justify-content-between mb-1">
-                                    <span>Emergency Fund</span>
-                                    <span id="emergencyFundScore">0/20</span>
-                                </div>
-                                <div class="progress" style="height: 10px;">
-                                    <div id="emergencyFundBar" class="progress-bar bg-warning" style="width: 0%"></div>
-                                </div>
-                            </div>
-                            <div class="score-item mb-3">
-                                <div class="d-flex justify-content-between mb-1">
-                                    <span>Investment Diversity</span>
-                                    <span id="investmentDiversityScore">0/20</span>
-                                </div>
-                                <div class="progress" style="height: 10px;">
-                                    <div id="investmentDiversityBar" class="progress-bar bg-primary" style="width: 0%"></div>
-                                </div>
-                            </div>
-                            <div class="score-item mb-3">
-                                <div class="d-flex justify-content-between mb-1">
-                                    <span>Net Worth Growth</span>
-                                    <span id="netWorthGrowthScore">0/20</span>
-                                </div>
-                                <div class="progress" style="height: 10px;">
-                                    <div id="netWorthGrowthBar" class="progress-bar bg-danger" style="width: 0%"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
             </div>
 
             <!-- Error Message Display -->

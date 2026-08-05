@@ -12,27 +12,27 @@ function disposeChart(chartInstance) {
 
 let charts = {};
 
-// Chart color schemes
+// Chart color schemes — "The Ledger" palette
 const chartColors = {
-    primary: '#667eea',
-    secondary: '#764ba2',
-    success: '#10d164',
-    warning: '#feca57',
-    danger: '#ff6b6b',
-    info: '#48c6ef',
-    dark: '#2d3436',
-    light: '#dfe6e9'
+    primary: '#96713E',
+    secondary: '#B08D57',
+    success: '#2B6E4F',
+    warning: '#9C6B12',
+    danger: '#A6402F',
+    info: '#2E6E8E',
+    dark: '#1B1B18',
+    light: '#F3ECDD'
 };
 
 const investmentColors = {
-    'Fixed Income': '#28a745',
-    'Mutual Funds': '#17a2b8',
-    'Stocks': '#007bff',
-    'Real Estate': '#6c757d',
-    'Gold': '#ffc107',
-    'Bonds': '#e83e8c',
-    'Cryptocurrency': '#fd7e14',
-    'Other': '#6610f2'
+    'Fixed Income': '#2B6E4F',
+    'Mutual Funds': '#2E6E8E',
+    'Stocks': '#96713E',
+    'Real Estate': '#6E5B47',
+    'Gold': '#9C6B12',
+    'Bonds': '#7C5A2E',
+    'Cryptocurrency': '#A6402F',
+    'Other': '#5B584E'
 };
 
 // 3. Updated initCharts with proper cleanup
@@ -53,7 +53,13 @@ function initCharts() {
     window.charts = {};
     
     // Set default options with performance optimizations
-    Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.font.family = "'IBM Plex Sans', sans-serif";
+    // Chart cards are parchment in light mode, deep ledger-green in dark
+    // mode — set a sensible starting color; updateChartColors() below
+    // immediately corrects it to match the actual current theme.
+    const startsDark = document.body.classList.contains('dark-mode');
+    Chart.defaults.color = startsDark ? '#D9CFB8' : '#5B584E';
+    Chart.defaults.borderColor = startsDark ? 'rgba(243, 236, 221, 0.10)' : 'rgba(27, 27, 24, 0.08)';
     Chart.defaults.animation.duration = 500; // Reduce animation time
     Chart.defaults.animation.animateRotate = false; // Disable rotation animation for pie charts
     Chart.defaults.animation.animateScale = false; // Disable scale animation
@@ -915,9 +921,11 @@ function calculateTrendLine(data) {
 // Update chart colors based on theme
 function updateChartColors(isDarkMode) {
     if (!charts.investment || !charts.risk || !charts.progress || !charts.historical) return;
-    
-    const textColor = isDarkMode ? '#ffffff' : '#1e293b';
-    const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
+
+    // Chart cards are deep ledger-green in dark mode, parchment in light
+    // mode, so axis/legend text needs to flip between cream and ink.
+    const textColor = isDarkMode ? '#D9CFB8' : '#5B584E';
+    const gridColor = isDarkMode ? 'rgba(243, 236, 221, 0.10)' : 'rgba(27, 27, 24, 0.08)';
     
     // Update all chart options
     Object.values(charts).forEach(chart => {

@@ -73,9 +73,12 @@ function addRow(tableId, event) {
         console.error(`Table ${tableId} not found`);
         return;
     }
-    
+
+    // Clear the empty-state placeholder row (if present) before adding a real row
+    table.querySelector('.table-empty-state')?.remove();
+
     const currentRows = table.querySelectorAll('tr').length;
-    
+
     // Row limits
     const rowLimits = {
         'investments': 50,
@@ -134,7 +137,7 @@ function addRow(tableId, event) {
                 </button></td>
             `;
             break;
-            
+
         case 'income':
             row.innerHTML = `
                 <td><select class="form-select" name="income_name" oninput="window.debouncedUpdate()">
@@ -153,7 +156,7 @@ function addRow(tableId, event) {
                 </button></td>
             `;
             break;
-            
+
         case 'loans':
             row.innerHTML = `
                 <td><select class="form-select" name="loan_name" oninput="window.debouncedUpdate()">
@@ -172,7 +175,7 @@ function addRow(tableId, event) {
                 </button></td>
             `;
             break;
-            
+
         case 'expenses':
             row.innerHTML = `
                 <td><select class="form-select" name="expense_category" oninput="window.debouncedUpdate()">
@@ -226,9 +229,12 @@ function addGoal(event) {
         console.error('Goals table not found');
         return;
     }
-    
+
+    // Clear the empty-state placeholder row (if present) before adding a real row
+    table.querySelector('.table-empty-state')?.remove();
+
     const currentRows = table.querySelectorAll('tr').length;
-    
+
     if (currentRows >= 20) {
         showNotification('Maximum 20 goals allowed', 'warning');
         return;
@@ -320,13 +326,19 @@ function removeRow(button, tableId) {
 // Perform the actual row removal
 function performRowRemoval(row) {
     console.log('performRowRemoval function called');
+    const tbody = row.closest('tbody');
+    const tableId = row.closest('table')?.id;
     row.style.transition = 'opacity 0.3s ease';
     row.style.opacity = '0';
-    
+
     setTimeout(() => {
         row.remove();
         if (typeof window.debouncedUpdate === 'function') {
             window.debouncedUpdate();
+        }
+        // Re-show the empty state if that was the last row
+        if (tbody && tableId && tbody.children.length === 0 && typeof updateTableSection === 'function') {
+            updateTableSection(tableId);
         }
         showNotification('Item removed', 'success');
     }, 300);
@@ -524,7 +536,13 @@ function toggleDarkMode() {
             Object.values(window.charts).forEach(chart => chart?.update());
         }
     }
-    
+
+    // Redraw the health score gauge — it's hand-drawn on canvas and its
+    // ink/cream tick and text colors don't update on their own.
+    if (typeof window.updateFinancialHealthScore === 'function') {
+        window.updateFinancialHealthScore();
+    }
+
     showNotification(`${isDarkMode ? 'Dark' : 'Light'} mode activated`, 'success');
 }
 
@@ -547,6 +565,37 @@ function toggleSidebar() {
         }
     }
 }
+
+// Jump-nav: scroll explicitly via scrollIntoView rather than relying on
+// native anchor-jump, which browsers skip when the URL's hash already
+// matches the link's href (e.g. clicking the same section link twice in a
+// row does nothing natively). Also closes the sidebar after navigating on
+// mobile, where it would otherwise cover the section just jumped to.
+// (This script tag loads at the end of <body>, so the DOM is already
+// parsed here — no need to wait for DOMContentLoaded, which has already
+// fired by this point and would never call a listener registered now.)
+document.querySelectorAll('.sidebar-jumpnav a').forEach((link) => {
+    link.addEventListener('click', (event) => {
+        const targetId = link.getAttribute('href')?.slice(1);
+        const target = targetId && document.getElementById(targetId);
+        if (target) {
+            event.preventDefault();
+            // 'instant' (not 'auto'/'smooth') deliberately bypasses the
+            // page's CSS scroll-behavior: smooth — that path was found to
+            // stall indefinitely for large jumps in testing, never
+            // completing the scroll at all.
+            target.scrollIntoView({ behavior: 'instant', block: 'start' });
+            history.replaceState(null, '', `#${targetId}`);
+        }
+
+        if (window.innerWidth <= 768) {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar && sidebar.classList.contains('active')) {
+                toggleSidebar();
+            }
+        }
+    });
+});
 
 // Show monthly details
 function showMonthlyDetails(date) {
@@ -651,7 +700,7 @@ function updateMonthlyRecordsTable() {
         
         row.innerHTML = `
             <td>${monthYear}</td>
-            <td>${window.formatCurrency ? window.formatCurrency(record.netWorth) : record.netWorth}</td>
+            <td class="col-num">${window.formatCurrency ? window.formatCurrency(record.netWorth) : record.netWorth}</td>
             <td class="${change.startsWith('-') ? 'text-danger' : 'text-success'}">${change}</td>
             <td><span class="badge ${status === 'Locked' ? 'bg-secondary' : 'bg-success'}">${status}</span></td>
             <td><button class="btn btn-sm btn-primary" onclick="showMonthlyDetails('${record.date}')"><i class="fas fa-eye"></i> Details</button></td>

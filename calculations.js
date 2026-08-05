@@ -137,6 +137,14 @@ function performCalculations() {
     }
     if (totalInvestmentsInput) totalInvestmentsInput.value = formatCurrency(totalInvestments);
     if (totalLoansInput) totalLoansInput.value = formatCurrency(totalLoans);
+
+    // Mirror net worth into the top bar so it stays visible while scrolling
+    // past the overview tiles — like a balance that's always on screen.
+    const topBarNetWorth = document.getElementById('topBarNetWorth');
+    if (topBarNetWorth) {
+        topBarNetWorth.textContent = formatCurrency(netWorth);
+        topBarNetWorth.classList.toggle('negative', netWorth < 0);
+    }
     
     window.data.goals.forEach((goal, index) => {
         const row = document.querySelectorAll('#goals tbody tr')[index];
@@ -598,12 +606,15 @@ if (window.historicalNetWorth && window.historicalNetWorth.length >= 3) {
 }
 
 function getFinancialGrade(score) {
-    if (score >= 90) return { grade: 'A+', color: '#10d164', label: 'Excellent' };
-    if (score >= 80) return { grade: 'A', color: '#28a745', label: 'Very Good' };
-    if (score >= 70) return { grade: 'B', color: '#17a2b8', label: 'Good' };
-    if (score >= 60) return { grade: 'C', color: '#ffc107', label: 'Fair' };
-    if (score >= 50) return { grade: 'D', color: '#fd7e14', label: 'Poor' };
-    return { grade: 'F', color: '#dc3545', label: 'Needs Improvement' };
+    // Health score card is parchment in light mode, deep ledger-green in
+    // dark mode — grade color needs enough contrast against either.
+    const dark = document.body.classList.contains('dark-mode');
+    if (score >= 90) return { grade: 'A+', color: dark ? '#4C9970' : '#2B6E4F', label: 'Excellent' };
+    if (score >= 80) return { grade: 'A', color: dark ? '#5CA37E' : '#3E7A5C', label: 'Very Good' };
+    if (score >= 70) return { grade: 'B', color: dark ? '#4A8FB5' : '#2E6E8E', label: 'Good' };
+    if (score >= 60) return { grade: 'C', color: dark ? '#C99A3D' : '#9C6B12', label: 'Fair' };
+    if (score >= 50) return { grade: 'D', color: dark ? '#D18A3D' : '#B5731A', label: 'Poor' };
+    return { grade: 'F', color: dark ? '#D2694F' : '#A6402F', label: 'Needs Improvement' };
 }
 
 // Enhanced updateFinancialHealthScore function
@@ -625,7 +636,7 @@ function updateFinancialHealthScore() {
     }
 if (labelElement) {
     labelElement.textContent = healthData.grade.label;  // Keep the text as is
-    labelElement.setAttribute('style', 'color: #94a3b8 !important;');  // Change the COLOR to a neutral gray
+    labelElement.setAttribute('style', 'color: rgba(27, 27, 24, 0.58) !important;');
 }
     
     // Update breakdown bars
@@ -661,21 +672,27 @@ function drawHealthScoreGauge(score) {
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
     const radius = 90;
-    
+
+    // Gauge sits on --glass-bg, which is parchment in light mode and deep
+    // ledger-green in dark mode — ink-tinted marks need to flip to
+    // cream-tinted so they stay visible against the dark surface.
+    const dark = document.body.classList.contains('dark-mode');
+    const inkTint = dark ? '243, 236, 221' : '27, 27, 24';
+
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
     // Draw outer ring shadow
     ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
     ctx.shadowBlur = 10;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 5;
-    
+
     // Draw background arc
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius, Math.PI * 0.75, Math.PI * 2.25, false);
     ctx.lineWidth = 25;
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.strokeStyle = `rgba(${inkTint}, 0.10)`;
     ctx.stroke();
     
     // Reset shadow for score arc
@@ -692,51 +709,51 @@ function drawHealthScoreGauge(score) {
     // Create gradient based on score
     const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
     if (score >= 80) {
-        gradient.addColorStop(0, '#10d164');
-        gradient.addColorStop(1, '#28a745');
+        gradient.addColorStop(0, dark ? '#4C9970' : '#2B6E4F');
+        gradient.addColorStop(1, dark ? '#5CA37E' : '#3E7A5C');
     } else if (score >= 60) {
-        gradient.addColorStop(0, '#ffc107');
-        gradient.addColorStop(1, '#fd7e14');
+        gradient.addColorStop(0, dark ? '#C99A3D' : '#9C6B12');
+        gradient.addColorStop(1, dark ? '#D1A855' : '#B5731A');
     } else {
-        gradient.addColorStop(0, '#dc3545');
-        gradient.addColorStop(1, '#ff6b6b');
+        gradient.addColorStop(0, dark ? '#D2694F' : '#A6402F');
+        gradient.addColorStop(1, dark ? '#DA7F68' : '#B85A42');
     }
-    
+
     ctx.strokeStyle = gradient;
     ctx.stroke();
-    
+
     // Draw inner circle background
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius - 35, 0, Math.PI * 2, false);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+    ctx.fillStyle = `rgba(${inkTint}, 0.04)`;
     ctx.fill();
-    
+
     // Add tick marks
     ctx.save();
     ctx.translate(centerX, centerY);
     ctx.rotate(Math.PI * 0.75);
-    
+
     for (let i = 0; i <= 10; i++) {
         ctx.rotate((Math.PI * 1.5) / 10);
         ctx.beginPath();
         ctx.moveTo(radius - 35, 0);
         ctx.lineTo(radius - 40, 0);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.strokeStyle = `rgba(${inkTint}, 0.25)`;
         ctx.lineWidth = 2;
         ctx.stroke();
     }
     ctx.restore();
-    
+
     // Draw center score text
-    ctx.font = 'bold 48px Inter';
-    ctx.fillStyle = '#667eea';
+    ctx.font = 'bold 48px "IBM Plex Mono", monospace';
+    ctx.fillStyle = dark ? '#F3ECDD' : '#1B1B18';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(score, centerX, centerY - 10);
-    
+
     // Draw "out of 100" text
-    ctx.font = '14px Inter';
-    ctx.fillStyle = document.body.classList.contains('light-mode') ? 'rgba(0, 0, 0, 0.6)' : 'rgba(255, 255, 255, 0.6)';
+    ctx.font = '14px "IBM Plex Sans", sans-serif';
+    ctx.fillStyle = `rgba(${inkTint}, 0.6)`;
     ctx.fillText('out of 100', centerX, centerY + 25);
 }
 
