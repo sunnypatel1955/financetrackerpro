@@ -67,20 +67,6 @@
             <i class="fas fa-chart-line me-2"></i>Finance Tracker Pro
         </div>
 
-        <nav class="sidebar-section sidebar-jumpnav" aria-label="Jump to section">
-            <label class="form-label sidebar-section-label">Jump To</label>
-            <a href="#section-overview">Overview</a>
-            <a href="#section-health-score">Health Score</a>
-            <a href="#section-investments">Investments</a>
-            <a href="#section-loans">Loans</a>
-            <a href="#section-income">Income</a>
-            <a href="#section-expenses">Expenses</a>
-            <a href="#section-goals">Goals</a>
-            <a href="#section-charts">Charts</a>
-            <a href="#section-monthly-records">Monthly Records</a>
-            <a href="#section-insights">Insights</a>
-        </nav>
-
         <div class="sidebar-section">
             <label class="form-label sidebar-section-label">Currency</label>            <select class="form-select mb-3" id="currency" onchange="window.debouncedUpdate && window.debouncedUpdate()">
                 <option value="INR" selected>🇮🇳 INR (₹)</option>
@@ -144,6 +130,24 @@
     </div>
 
     <div class="main-content">
+        <!-- Section tabs: sticky under the top bar so navigation is always
+             reachable, and kept out of the sidebar so the actual CTAs
+             (Quick Actions, Data Management) sit above the fold there. -->
+        <nav class="section-nav" aria-label="Dashboard sections">
+            <div class="section-nav-track" id="sectionNavTrack">
+                <a href="#section-overview" class="section-nav-link is-active"><span>Overview</span></a>
+                <a href="#section-health-score" class="section-nav-link"><span>Health Score</span></a>
+                <a href="#section-investments" class="section-nav-link"><span>Investments</span></a>
+                <a href="#section-loans" class="section-nav-link"><span>Loans</span></a>
+                <a href="#section-income" class="section-nav-link"><span>Income</span></a>
+                <a href="#section-expenses" class="section-nav-link"><span>Expenses</span></a>
+                <a href="#section-goals" class="section-nav-link"><span>Goals</span></a>
+                <a href="#section-charts" class="section-nav-link"><span>Charts</span></a>
+                <a href="#section-monthly-records" class="section-nav-link"><span>Monthly Records</span></a>
+                <a href="#section-insights" class="section-nav-link"><span>Insights</span></a>
+            </div>
+        </nav>
+
         <div class="container-fluid">
             <div class="row g-4">
                 <!-- Enhanced Overview Section -->
@@ -561,8 +565,7 @@
                     </div>
                 </div>
 
-                <!-- Enhanced Monthly Records Table — collapsed by default,
-                     used less often than the daily-entry tables above it. -->
+                <!-- Enhanced Monthly Records Table -->
                 <div class="col-12" id="section-monthly-records">
                     <div class="card">
                         <div class="card-header">
@@ -571,10 +574,10 @@
                                 <span class="fw-bold">Monthly Financial Records</span>
                             </div>
                             <button class="toggle-btn" onclick="toggleSection && toggleSection('monthlyRecordsCollapse')" title="Toggle Section">
-                                <i class="fas fa-chevron-down"></i>
+                                <i class="fas fa-chevron-up"></i>
                             </button>
                         </div>
-                        <div class="collapse" id="monthlyRecordsCollapse">
+                        <div class="collapse show" id="monthlyRecordsCollapse">
                             <div class="table-container">
                                 <table class="table" id="monthlyRecords">
                                     <thead>

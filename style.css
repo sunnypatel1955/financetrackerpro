@@ -313,45 +313,18 @@ body.light-mode .sidebar-section-label {
     color: var(--secondary-color);
 }
 
-/* Sidebar quick-jump nav — the dashboard is a long single page, so a
-   fixed index into its sections is worth the sidebar space. */
-.sidebar-jumpnav {
-    display: flex;
-    flex-direction: column;
-}
-
-.sidebar-jumpnav a {
-    color: var(--text-dark);
-    text-decoration: none;
-    font-size: 0.85rem;
-    padding: 0.4rem 0.5rem;
-    border-radius: var(--radius-sm);
-    transition: var(--transition);
-    opacity: 0.8;
-}
-
-.sidebar-jumpnav a:hover {
-    background: var(--brass-soft);
-    color: var(--brass);
-    opacity: 1;
-}
-
-/* Anchors land below the fixed top bar, not hidden behind it */
+/* Anchors land below the fixed top bar AND the sticky section nav,
+   not hidden behind them */
 [id^="section-"] {
-    scroll-margin-top: 80px;
+    scroll-margin-top: 132px;
 }
 
 html {
-    /* CSS scroll-behavior: smooth was tested here and found to stall
-       indefinitely on long jumps (never completing), rather than just
-       animating slowly — so jump-nav scrolls instead via explicit
-       scrollIntoView({behavior: 'instant'}) in ui.js. Deliberately not
-       set here to avoid the same stall affecting anything else that
-       scrolls programmatically or via anchor links in the future.
-       overflow-anchor: none avoids a related issue where Chrome's
-       scroll-anchoring silently "corrects" a jump back toward the top if
-       layout above the viewport shifts shortly after (e.g. a chart or the
-       health-score gauge redrawing). */
+    /* Avoids Chrome's scroll-anchoring silently "correcting" a jump back
+       toward the top when layout above the viewport shifts shortly after
+       (e.g. a chart or the health-score gauge redrawing). Smooth scrolling
+       itself comes from Bootstrap's reboot (:root scroll-behavior), which
+       already respects prefers-reduced-motion. */
     overflow-anchor: none;
 }
 
@@ -368,6 +341,94 @@ html {
 
 .sidebar.active ~ .main-content {
     margin-left: 320px;
+}
+
+/* Section Nav — index tabs along the top of the ledger
+   ========================================================================== */
+.section-nav {
+    position: sticky;
+    top: 64px;
+    z-index: 1020;
+    margin-bottom: 1.5rem;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--glass-shadow);
+    overflow: hidden;
+}
+
+.section-nav-track {
+    display: flex;
+    overflow-x: auto;
+    /* The track scrolls horizontally when the tabs outgrow the width, but
+       a visible scrollbar under a 48px-tall bar looks broken — the active
+       tab is auto-scrolled into view from JS instead. */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.section-nav-track::-webkit-scrollbar {
+    display: none;
+}
+
+.section-nav-link {
+    flex: 0 0 auto;
+    /* Padding is sized so an enlarged active label still clears its
+       neighbours — at 1.15rem the widest one ("Monthly Records") came
+       within ~3px of them once scaled. */
+    padding: 0.85rem 1.5rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    transition: var(--transition);
+}
+
+.section-nav-link:hover {
+    color: var(--text-dark);
+    background: var(--brass-soft);
+}
+
+.section-nav-link.is-active {
+    color: var(--brass);
+    border-bottom-color: var(--brass);
+    font-weight: 600;
+}
+
+/* The label is wrapped in its own span so the scale applies to the text
+   only — scaling the whole link would stretch its underline with it.
+   The overshoot easing makes the change still read as a pop rather than a
+   plain resize, but it settles at the enlarged size instead of returning. */
+.section-nav-link span {
+    display: inline-block;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* The active tab stays enlarged until another one takes over, so the
+   current section is identifiable at a glance and not just for the
+   moment after it is picked. */
+.section-nav-link.is-active span {
+    transform: scale(1.25);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .section-nav-link span {
+        transition: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .section-nav {
+        top: 64px;
+        margin-bottom: 1rem;
+    }
+
+    .section-nav-link {
+        padding: 0.75rem 1.15rem;
+        font-size: 0.8rem;
+    }
 }
 
 /* Cards

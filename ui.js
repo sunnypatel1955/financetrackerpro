@@ -566,36 +566,99 @@ function toggleSidebar() {
     }
 }
 
-// Jump-nav: scroll explicitly via scrollIntoView rather than relying on
-// native anchor-jump, which browsers skip when the URL's hash already
-// matches the link's href (e.g. clicking the same section link twice in a
-// row does nothing natively). Also closes the sidebar after navigating on
-// mobile, where it would otherwise cover the section just jumped to.
+// Section nav (the sticky tab bar above the dashboard).
 // (This script tag loads at the end of <body>, so the DOM is already
 // parsed here — no need to wait for DOMContentLoaded, which has already
 // fired by this point and would never call a listener registered now.)
-document.querySelectorAll('.sidebar-jumpnav a').forEach((link) => {
-    link.addEventListener('click', (event) => {
-        const targetId = link.getAttribute('href')?.slice(1);
-        const target = targetId && document.getElementById(targetId);
-        if (target) {
-            event.preventDefault();
-            // 'instant' (not 'auto'/'smooth') deliberately bypasses the
-            // page's CSS scroll-behavior: smooth — that path was found to
-            // stall indefinitely for large jumps in testing, never
-            // completing the scroll at all.
-            target.scrollIntoView({ behavior: 'instant', block: 'start' });
-            history.replaceState(null, '', `#${targetId}`);
-        }
+(function initSectionNav() {
+    const track = document.getElementById('sectionNavTrack');
+    const links = Array.from(document.querySelectorAll('.section-nav-link'));
+    if (!track || links.length === 0) return;
 
-        if (window.innerWidth <= 768) {
-            const sidebar = document.getElementById('sidebar');
-            if (sidebar && sidebar.classList.contains('active')) {
-                toggleSidebar();
-            }
+    const sections = links.map((link) => document.getElementById(link.getAttribute('href').slice(1)));
+
+    // Keep the active tab visible inside the horizontally scrollable track.
+    // Scrolls the track itself rather than using scrollIntoView, which would
+    // also yank the page vertically.
+    function revealActiveTab(link) {
+        const linkBox = link.getBoundingClientRect();
+        const trackBox = track.getBoundingClientRect();
+        if (linkBox.left < trackBox.left) {
+            track.scrollLeft -= (trackBox.left - linkBox.left) + 16;
+        } else if (linkBox.right > trackBox.right) {
+            track.scrollLeft += (linkBox.right - trackBox.right) + 16;
         }
+    }
+
+    // Starts at 0 to match the is-active already on the first tab in the
+    // markup.
+    let activeIndex = 0;
+
+    // The enlarged-label styling is driven entirely by .is-active in
+    // style.css, so moving the class is all that is needed — the outgoing
+    // tab shrinks and the incoming one grows on their own.
+    function setActive(index) {
+        if (index === activeIndex) return;
+        activeIndex = index;
+        links.forEach((link, i) => link.classList.toggle('is-active', i === index));
+        if (links[index]) revealActiveTab(links[index]);
+    }
+
+    // Scroll-spy: the active tab is whichever section has most recently
+    // passed under the sticky header.
+    const HEADER_OFFSET = 140;
+    function syncActiveFromScroll() {
+        let active = 0;
+        sections.forEach((section, i) => {
+            if (section && section.getBoundingClientRect().top <= HEADER_OFFSET) active = i;
+        });
+        // At the very bottom the last section may never reach the offset
+        // (it can be shorter than the remaining viewport), so pin it there.
+        if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) {
+            active = sections.length - 1;
+        }
+        setActive(active);
+    }
+
+    let ticking = false;
+    window.addEventListener('scroll', () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(() => {
+            syncActiveFromScroll();
+            ticking = false;
+        });
+    }, { passive: true });
+
+    links.forEach((link, index) => {
+        link.addEventListener('click', (event) => {
+            const target = sections[index];
+            if (!target) return;
+            event.preventDefault();
+
+            // Lands below the sticky header via the section's
+            // scroll-margin-top in style.css.
+            const startY = window.scrollY;
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            // Smooth scrolling is animation-frame driven, so it silently
+            // does nothing in contexts where frames aren't produced (an
+            // inactive/non-rendering tab). Fall back to an instant jump if
+            // the animation clearly never started, so the tabs always
+            // navigate.
+            setTimeout(() => {
+                if (window.scrollY === startY) {
+                    target.scrollIntoView({ behavior: 'instant', block: 'start' });
+                }
+            }, 150);
+
+            history.replaceState(null, '', link.getAttribute('href'));
+            setActive(index);
+        });
     });
-});
+
+    syncActiveFromScroll();
+})();
 
 // Show monthly details
 function showMonthlyDetails(date) {
