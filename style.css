@@ -614,9 +614,11 @@ input[type="number"] {
 
 /* Money figures: tabular monospace, right-aligned like a real ledger column */
 input.form-control[name="investment_value"],
+input.form-control[name="investment_flow"],
 input.form-control[name="investment_return"],
 input.form-control[name="income_value"],
 input.form-control[name="loan_value"],
+input.form-control[name="loan_flow"],
 input.form-control[name="loan_interest"],
 input.form-control[name="expense_value"],
 input.form-control[name="goal_target"],
@@ -1719,4 +1721,47 @@ button:focus-visible,
 .tooltip-content p {
     color: rgba(243, 236, 221, 0.85) !important;
     line-height: 1.4;
+}
+
+/* Item History */
+.dark-mode .table th.col-flow,
+body.light-mode .table th.col-flow {
+    min-width: 150px;
+}
+
+#itemHistoryEntries,
+#modalItemBreakdown table {
+    table-layout: auto;
+}
+
+#itemHistoryEntries td:first-child {
+    white-space: nowrap;
+}
+
+.item-history-subheading {
+    margin: 1.25rem 1.25rem 0.5rem;
+    color: var(--text-muted);
+}
+
+.item-history-chart {
+    position: relative;
+    height: 240px;
+    margin-bottom: 1rem;
+}
+
+.table td.item-history-muted,
+.item-history-muted {
+    color: var(--text-muted);
+}
+
+#section-item-history .text-success,
+#itemHistoryEntries .text-success,
+#modalItemBreakdown .text-success {
+    color: var(--success-color) !important;
+}
+
+#section-item-history .text-danger,
+#itemHistoryEntries .text-danger,
+#modalItemBreakdown .text-danger {
+    color: var(--error-color) !important;
 }

@@ -95,6 +95,9 @@ function addRow(tableId, event) {
     
     const row = document.createElement('tr');
     row.style.opacity = '0';
+    if (tableId === 'investments' || tableId === 'loans') {
+        row.dataset.itemId = generateItemId();
+    }
     
     // Default values for different investment types
     const investmentDefaults = {
@@ -125,6 +128,7 @@ function addRow(tableId, event) {
                     <option value="Other">Other</option>
                 </select></td>
                 <td><input type="number" class="form-control" name="investment_value" placeholder="0" step="100" min="0" oninput="window.debouncedUpdate()"></td>
+                <td><input type="number" class="form-control" name="investment_flow" placeholder="0" step="100" title="Money added this month. Use a minus for money withdrawn." oninput="window.debouncedUpdate()"></td>
                 <td><input type="number" class="form-control" name="investment_return" value="${defaults.return}" step="0.1" min="-100" max="100" oninput="window.debouncedUpdate()"></td>
                 <td><select class="form-select" name="investment_risk" oninput="window.debouncedUpdate()">
                     <option value="low" ${defaults.risk === 'low' ? 'selected' : ''}>Low</option>
@@ -168,6 +172,7 @@ function addRow(tableId, event) {
                     <option value="Other">Other</option>
                 </select></td>
                 <td><input type="number" class="form-control" name="loan_value" placeholder="0" step="100" min="0" oninput="window.debouncedUpdate()"></td>
+                <td><input type="number" class="form-control" name="loan_flow" placeholder="0" step="100" title="Money paid this month. Use a minus for money received." oninput="window.debouncedUpdate()"></td>
                 <td><input type="number" class="form-control" name="loan_interest" placeholder="0" step="0.1" min="0" max="50" oninput="window.debouncedUpdate()"></td>
                 <td><input type="text" class="form-control" name="loan_remark" placeholder="Notes" maxlength="50" oninput="window.debouncedUpdate()"></td>
                 <td><button class="remove-btn" onclick="removeRow(this, '${tableId}')" title="Remove">
@@ -299,6 +304,21 @@ function handleInvestmentChange(selectElement) {
 function removeRow(button, tableId) {
     console.log('removeRow function called');
     const row = button.closest('tr');
+    const itemId = row.dataset.itemId;
+
+    // Items saved in an earlier month keep their history
+    if (itemId && isItemInPastRecords(itemId, historicalNetWorth)) {
+        closeTrackedItem(row, tableId);
+        return;
+    }
+
+    // An item saved only in this month's record must leave that record too
+    const afterRemoval = () => {
+        const record = findCurrentMonthRecord(historicalNetWorth);
+        if (itemId && record?.items?.some(item => item.id === itemId)) {
+            refreshCurrentMonthRecord();
+        }
+    };
     
     if (typeof Swal !== 'undefined') {
         Swal.fire({
@@ -312,19 +332,19 @@ function removeRow(button, tableId) {
             cancelButtonText: 'Cancel'
         }).then((result) => {
             if (result.isConfirmed) {
-                performRowRemoval(row);
+                performRowRemoval(row, afterRemoval);
             }
         });
     } else {
         // Fallback confirmation
         if (confirm('Remove this item? This action cannot be undone.')) {
-            performRowRemoval(row);
+            performRowRemoval(row, afterRemoval);
         }
     }
 }
 
 // Perform the actual row removal
-function performRowRemoval(row) {
+function performRowRemoval(row, onRemoved) {
     console.log('performRowRemoval function called');
     const tbody = row.closest('tbody');
     const tableId = row.closest('table')?.id;
@@ -333,14 +353,17 @@ function performRowRemoval(row) {
 
     setTimeout(() => {
         row.remove();
-        if (typeof window.debouncedUpdate === 'function') {
-            window.debouncedUpdate();
+        // Update now, not debounced: the empty-state check below re-renders
+        // from data, which would otherwise bring the removed row back.
+        if (typeof window.update === 'function') {
+            window.update();
         }
         // Re-show the empty state if that was the last row
         if (tbody && tableId && tbody.children.length === 0 && typeof updateTableSection === 'function') {
             updateTableSection(tableId);
         }
         showNotification('Item removed', 'success');
+        if (onRemoved) onRemoved();
     }, 300);
 }
 
@@ -384,8 +407,9 @@ function validateNumberInput(event) {
         return;
     }
     
-    // Allow minus at start for returns
-    if (isMinus && event.target.name === 'investment_return' && value.length === 0) {
+    // Allow minus at start for returns and money in/out amounts
+    const allowsMinus = ['investment_return', 'investment_flow', 'loan_flow'].includes(event.target.name);
+    if (isMinus && allowsMinus && value.length === 0) {
         return;
     }
     
@@ -692,12 +716,14 @@ function showMonthlyDetails(date) {
     document.getElementById('modalExpenses').textContent = formatCurrency(totalExpenses);
     document.getElementById('modalSavings').textContent = formatCurrency(netSavings);
     document.getElementById('modalSavings').className = netSavings < 0 ? 'text-danger' : 'text-success';
+    renderMonthItemBreakdown(record);
     modal.show();
 }
 
 // Debug version of updateMonthlyRecordsTable
 function updateMonthlyRecordsTable() {
     console.log('updateMonthlyRecordsTable function called');
+    renderItemHistory();
     
     const tbody = document.querySelector('#monthlyRecords tbody');
     if (!tbody) {
@@ -816,7 +842,8 @@ function deleteMonthlyRecord(date) {
 function performRecordDeletion(date) {
     console.log('performRecordDeletion function called');
     if (window.historicalNetWorth) {
-        window.historicalNetWorth = window.historicalNetWorth.filter(r => r.date !== date);
+        historicalNetWorth = historicalNetWorth.filter(r => r.date !== date);
+        window.historicalNetWorth = historicalNetWorth;
         updateMonthlyRecordsTable();
         
         if (typeof window.updateHistoricalChart === 'function') {

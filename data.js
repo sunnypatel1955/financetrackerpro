@@ -1,5 +1,5 @@
 // Enhanced Data Management Module
-const CURRENT_DATA_VERSION = 2;
+const CURRENT_DATA_VERSION = 3;
 // Replace the existing API_BASE_URL with this
 const API_BASE_URL = window.location.hostname === 'localhost' 
     ? 'http://localhost:3000/api' 
@@ -12,6 +12,7 @@ let data = {
     loans: [],
     expenses: [],
     goals: [],
+    closedItems: [],
     settings: {
         currency: 'INR',
         theme: 'dark',
@@ -270,7 +271,7 @@ async function loadData() {
         }
 
         // Apply loaded data
-        data = serverData.data || getDefaultData();
+        data = prepareLoadedData(serverData.data || getDefaultData());
         historicalNetWorth = serverData.historicalNetWorth || [];
 
         // CRITICAL: Add this line to sync both references
@@ -350,7 +351,15 @@ function loadFromLocalStorage() {
             throw new Error('Invalid local data structure');
         }
         
-        data = parsedData.data || getDefaultData();
+        const localVersion = parsedData.version || 1;
+        if (localVersion > CURRENT_DATA_VERSION) {
+            throw new Error('Local data version is newer than current app version');
+        }
+        const localData = localVersion < CURRENT_DATA_VERSION
+            ? migrateData(parsedData.data, localVersion)
+            : parsedData.data;
+
+        data = prepareLoadedData(localData || getDefaultData());
         historicalNetWorth = parsedData.historicalNetWorth || [];
 
         // CRITICAL: Add this line to sync both references
@@ -376,6 +385,7 @@ function getDefaultData() {
         loans: [],
         expenses: [],
         goals: [],
+        closedItems: [],
         settings: {
             currency: 'INR',
             theme: 'dark',
@@ -451,6 +461,11 @@ function migrateData(oldData, oldVersion) {
             tags: inv.tags || []
         }));
     }
+
+    // Version 2 to 3 migration: permanent row ids for item history
+    if (oldVersion < 3) {
+        migratedData = ensureTrackingFields(removeBlankRecords(migratedData));
+    }
     
     return migratedData;
 }
@@ -506,8 +521,8 @@ function updateUIWithData() {
 // Update table section
 // Empty-state copy per table — colspan must match each table's column count
 const TABLE_EMPTY_STATES = {
-    investments: { colspan: 6, icon: 'fa-chart-line', message: 'No investments yet.', cta: "addRow('investments', event)", ctaLabel: 'Add Investment' },
-    loans: { colspan: 5, icon: 'fa-hand-holding-usd', message: 'No loans recorded.', cta: "addRow('loans', event)", ctaLabel: 'Add Loan' },
+    investments: { colspan: 7, icon: 'fa-chart-line', message: 'No investments yet.', cta: "addRow('investments', event)", ctaLabel: 'Add Investment' },
+    loans: { colspan: 6, icon: 'fa-hand-holding-usd', message: 'No loans recorded.', cta: "addRow('loans', event)", ctaLabel: 'Add Loan' },
     income: { colspan: 4, icon: 'fa-money-bill-wave', message: 'No income sources yet.', cta: "addRow('income', event)", ctaLabel: 'Add Income' },
     expenses: { colspan: 5, icon: 'fa-shopping-cart', message: 'No expenses recorded yet.', cta: "addRow('expenses', event)", ctaLabel: 'Add Expense' },
     goals: { colspan: 5, icon: 'fa-bullseye', message: 'No goals set yet.', cta: 'addGoal(event)', ctaLabel: 'Add Goal' }
@@ -566,6 +581,7 @@ window.escapeHtml = escapeHtml;
 function createTableRow(section, item) {
     console.log('createTableRow function called - Creating table row for section:', section);
     const row = document.createElement('tr');
+    if (item.id) row.dataset.itemId = item.id;
 
     switch (section) {
         case 'investments':
@@ -574,6 +590,7 @@ function createTableRow(section, item) {
                     ${getInvestmentOptions(item.name)}
                 </select></td>
                 <td><input type="number" class="form-control" name="investment_value" value="${escapeHtml(item.value || 0)}" step="0.01" min="0" oninput="debouncedUpdate()"></td>
+                <td><input type="number" class="form-control" name="investment_flow" value="${escapeHtml(item.flow || '')}" step="0.01" placeholder="0" title="Money added this month. Use a minus for money withdrawn." oninput="debouncedUpdate()"></td>
                 <td><input type="number" class="form-control" name="investment_return" value="${escapeHtml(item.return || 0)}" step="0.1" oninput="debouncedUpdate()"></td>
                 <td><select class="form-select" name="investment_risk" oninput="debouncedUpdate()">
                     <option value="low" ${item.risk === 'low' ? 'selected' : ''}>Low</option>
@@ -602,6 +619,7 @@ function createTableRow(section, item) {
                     ${getLoanOptions(item.name)}
                 </select></td>
                 <td><input type="number" class="form-control" name="loan_value" value="${escapeHtml(item.value || 0)}" step="0.01" min="0" oninput="debouncedUpdate()"></td>
+                <td><input type="number" class="form-control" name="loan_flow" value="${escapeHtml(item.flow || '')}" step="0.01" placeholder="0" title="Money paid this month. Use a minus for money received." oninput="debouncedUpdate()"></td>
                 <td><input type="number" class="form-control" name="loan_interest" value="${escapeHtml(item.interest || 0)}" step="0.1" min="0" oninput="debouncedUpdate()"></td>
                 <td><input type="text" class="form-control" name="loan_remark" value="${escapeHtml(item.remark || '')}" maxlength="50" oninput="debouncedUpdate()"></td>
                 <td><button class="remove-btn" onclick="removeRow(this, 'loans')">X</button></td>
@@ -908,7 +926,7 @@ function importData() {
                 }
                 
                 // Apply imported data
-                data = importedData;
+                data = prepareLoadedData(importedData);
                 historicalNetWorth = backup.historicalNetWorth || [];
                 window.data = data;
                 window.historicalNetWorth = historicalNetWorth;
@@ -974,7 +992,7 @@ function undoData() {
 
 // Replace your saveMonthlyNetWorth function with this version that updates BOTH references
 
-async function saveMonthlyNetWorth() {
+async function saveMonthlyNetWorth({ silent = false } = {}) {
     console.log('saveMonthlyNetWorth function called - Starting...');
     
     // CRITICAL: First update data from all UI inputs
@@ -985,6 +1003,11 @@ async function saveMonthlyNetWorth() {
     
     // IMPORTANT: Wait a bit for update to complete
     await new Promise(resolve => setTimeout(resolve, 100));
+
+    // A tab left open into a new month still has last month's amounts
+    if (data && settleRecordedFlows(data)) {
+        updateUIWithData();
+    }
     
     if (!data) {
         console.error('saveMonthlyNetWorth: No data found');
@@ -1060,6 +1083,8 @@ async function saveMonthlyNetWorth() {
     console.log('saveMonthlyNetWorth: Removed records:', originalLength - historicalNetWorth.length);
     
     // Add new record
+    newRecord.items = buildMonthSnapshot(data, historicalNetWorth);
+    markFlowsRecorded(data, monthKey(now));
     historicalNetWorth.push(newRecord);
     console.log('saveMonthlyNetWorth: Added new record, total length:', historicalNetWorth.length);
     
@@ -1100,7 +1125,7 @@ async function saveMonthlyNetWorth() {
         window.updateInsights();
     }
     
-    if (typeof window.showNotification === 'function') {
+    if (!silent && typeof window.showNotification === 'function') {
         window.showNotification('Monthly net worth saved successfully', 'success');
     }
     

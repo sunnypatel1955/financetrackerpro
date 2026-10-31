@@ -144,6 +144,7 @@
                 <a href="#section-goals" class="section-nav-link"><span>Goals</span></a>
                 <a href="#section-charts" class="section-nav-link"><span>Charts</span></a>
                 <a href="#section-monthly-records" class="section-nav-link"><span>Monthly Records</span></a>
+                <a href="#section-item-history" class="section-nav-link"><span>Item History</span></a>
                 <a href="#section-insights" class="section-nav-link"><span>Insights</span></a>
             </div>
         </nav>
@@ -309,6 +310,7 @@
                                         <tr>
                                             <th class="col-name"><i class="fas fa-tag me-1"></i>Investment Name</th>
                                             <th class="col-num"><i class="fas fa-money-bill-wave me-1"></i>Current Value</th>
+                                            <th class="col-num col-flow" title="Money added this month. Use a minus for money withdrawn."><i class="fas fa-exchange-alt me-1"></i>Money In/Out This Month</th>
                                             <th class="col-num col-pct"><i class="fas fa-percentage me-1"></i>Expected Return (%)</th>
                                             <th class="col-fixed-sm"><i class="fas fa-shield-alt me-1"></i>Risk Level</th>
                                             <th><i class="fas fa-comment me-1"></i>Notes</th>
@@ -349,6 +351,7 @@
                                         <tr>
                                             <th class="col-name"><i class="fas fa-tag me-1"></i>Loan Name</th>
                                             <th class="col-num"><i class="fas fa-money-bill-wave me-1"></i>Outstanding Amount</th>
+                                            <th class="col-num col-flow" title="Money paid this month. Use a minus for money received."><i class="fas fa-exchange-alt me-1"></i>Paid/Received This Month</th>
                                             <th class="col-num col-pct"><i class="fas fa-percentage me-1"></i>Annual Interest (%)</th>
                                             <th><i class="fas fa-comment me-1"></i>Notes</th>
                                             <th class="col-actions"><i class="fas fa-cog me-1"></i>Actions</th>
@@ -585,9 +588,60 @@
                                             <th class="col-name"><i class="fas fa-calendar me-1"></i>Month</th>
                                             <th class="col-num"><i class="fas fa-money-bill-wave me-1"></i>Net Worth</th>
                                             <th class="col-fixed-sm"><i class="fas fa-exchange-alt me-1"></i>Change</th>
-                                            <th class="col-fixed-sm"><i class="fas fa-chart-line me-1"></i>Trend</th>
                                             <th class="col-fixed-sm"><i class="fas fa-info-circle me-1"></i>Status</th>
                                             <th class="col-actions-wide"><i class="fas fa-cog me-1"></i>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Investment and Loan History -->
+                <div class="col-12" id="section-item-history">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-history me-3"></i>
+                                <span class="fw-bold">Item History</span>
+                            </div>
+                            <button class="toggle-btn" onclick="toggleSection && toggleSection('itemHistoryCollapse')" title="Toggle Section">
+                                <i class="fas fa-chevron-up"></i>
+                            </button>
+                        </div>
+                        <div class="collapse show" id="itemHistoryCollapse">
+                            <div class="table-container">
+                                <table class="table" id="itemHistoryActive">
+                                    <thead>
+                                        <tr>
+                                            <th class="col-name">Item</th>
+                                            <th class="col-fixed-sm">Type</th>
+                                            <th class="col-num">Current Value</th>
+                                            <th class="col-num">Total In/Out</th>
+                                            <th class="col-num">Growth / Interest</th>
+                                            <th class="col-num">Growth %</th>
+                                            <th class="col-fixed-sm">Status</th>
+                                            <th class="col-actions-wide">History</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                            <h6 class="item-history-subheading">Closed Items</h6>
+                            <div class="table-container">
+                                <table class="table" id="itemHistoryClosed">
+                                    <thead>
+                                        <tr>
+                                            <th class="col-name">Item</th>
+                                            <th class="col-fixed-sm">Type</th>
+                                            <th class="col-num">Current Value</th>
+                                            <th class="col-num">Total In/Out</th>
+                                            <th class="col-num">Growth / Interest</th>
+                                            <th class="col-num">Growth %</th>
+                                            <th class="col-fixed-sm">Status</th>
+                                            <th class="col-actions-wide">History</th>
                                         </tr>
                                     </thead>
                                     <tbody></tbody>
@@ -749,6 +803,10 @@
                         </div>
                     </div>
                 </div>
+                <div class="modal-body pt-0">
+                    <h6 class="text-primary mb-3">Investments and Loans</h6>
+                    <div id="modalItemBreakdown"></div>
+                </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     <button type="button" class="btn btn-primary" onclick="window.exportMonthData && window.exportMonthData()">
@@ -759,6 +817,41 @@
         </div>
     </div>
       
+    <!-- Item History Modal -->
+    <div class="modal fade" id="itemHistoryModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="itemHistoryTitle">Item History</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="item-history-chart">
+                        <canvas id="itemHistoryChart"></canvas>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm" id="itemHistoryEntries">
+                            <thead>
+                                <tr>
+                                    <th>Month</th>
+                                    <th class="col-num">Opening</th>
+                                    <th class="col-num" id="itemHistoryFlowHeading">Money in/out</th>
+                                    <th class="col-num">Value</th>
+                                    <th class="col-num" id="itemHistoryGrowthHeading">Growth</th>
+                                    <th class="col-num">%</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Change Password Modal -->
     <div class="modal fade" id="changePasswordModal" tabindex="-1">
         <div class="modal-dialog">
@@ -1079,6 +1172,7 @@
     <script src="calculations.js"></script>
     <script src="charts.js"></script>
     <script src="ui.js"></script>
+    <script src="itemHistory.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

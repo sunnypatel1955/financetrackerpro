@@ -34,29 +34,51 @@ function update() {
         return;
     }
     
-    window.data.investments = Array.from(document.querySelectorAll('#investments tbody tr')).map(row => ({
+    const readRows = (section) => Array.from(document.querySelectorAll(`#${section} tbody tr:not(.table-empty-state)`));
+
+    // Fields that exist only in saved data and must survive the rebuild below
+    const keepTrackedFields = (previousItems, row) => {
+        const previous = (previousItems || []).find(item => item.id === row.dataset.itemId);
+        const fields = {
+            id: row.dataset.itemId,
+            dateAdded: previous?.dateAdded || new Date().toISOString()
+        };
+        if (previous?.flowRecordedMonth) {
+            fields.flowRecorded = previous.flowRecorded;
+            fields.flowRecordedMonth = previous.flowRecordedMonth;
+        }
+        return fields;
+    };
+
+    const previousInvestments = window.data.investments;
+    const previousLoans = window.data.loans;
+
+    window.data.investments = readRows('investments').map(row => ({
+        ...keepTrackedFields(previousInvestments, row),
         name: row.querySelector('[name="investment_name"]')?.value || 'Unnamed',
         value: parseFloat(row.querySelector('[name="investment_value"]')?.value) || 0,
+        flow: parseFloat(row.querySelector('[name="investment_flow"]')?.value) || 0,
         return: parseFloat(row.querySelector('[name="investment_return"]')?.value) || 0,
         risk: row.querySelector('[name="investment_risk"]')?.value || 'low',
-        remark: row.querySelector('[name="investment_remark"]')?.value || '',
-        dateAdded: new Date().toISOString()
+        remark: row.querySelector('[name="investment_remark"]')?.value || ''
     }));
     
-    window.data.income = Array.from(document.querySelectorAll('#income tbody tr')).map(row => ({
+    window.data.income = readRows('income').map(row => ({
         name: row.querySelector('[name="income_name"]')?.value || 'Unnamed',
         value: parseFloat(row.querySelector('[name="income_value"]')?.value) || 0,
         remark: row.querySelector('[name="income_remark"]')?.value || ''
     }));
     
-    window.data.loans = Array.from(document.querySelectorAll('#loans tbody tr')).map(row => ({
+    window.data.loans = readRows('loans').map(row => ({
+        ...keepTrackedFields(previousLoans, row),
         name: row.querySelector('[name="loan_name"]')?.value || 'Unnamed',
         value: parseFloat(row.querySelector('[name="loan_value"]')?.value) || 0,
+        flow: parseFloat(row.querySelector('[name="loan_flow"]')?.value) || 0,
         interest: parseFloat(row.querySelector('[name="loan_interest"]')?.value) || 0,
         remark: row.querySelector('[name="loan_remark"]')?.value || ''
     }));
     
-    window.data.expenses = Array.from(document.querySelectorAll('#expenses tbody tr')).map(row => ({
+    window.data.expenses = readRows('expenses').map(row => ({
         name: row.querySelector('[name="expense_category"]')?.value || 'Other',
         type: row.querySelector('[name="expense_type"]')?.value || 'Recurring',
         value: parseFloat(row.querySelector('[name="expense_value"]')?.value) || 0,
@@ -64,7 +86,7 @@ function update() {
         remark: row.querySelector('[name="expense_remark"]')?.value || ''
     }));
     
-    window.data.goals = Array.from(document.querySelectorAll('#goals tbody tr')).map(row => ({
+    window.data.goals = readRows('goals').map(row => ({
         name: row.querySelector('[name="goal_name"]')?.value || 'Unnamed',
         target: parseFloat(row.querySelector('[name="goal_target"]')?.value) || 0,
         time: row.querySelector('[name="goal_time"]')?.value || 'N/A'

@@ -529,6 +529,13 @@ async function exportToExcel() {
             const wsHistorical = XLSX.utils.aoa_to_sheet(historicalData);
             XLSX.utils.book_append_sheet(wb, wsHistorical, 'Historical');
         }
+
+        // Item history sheet
+        const itemHistoryRows = getItemHistoryExportRows();
+        if (itemHistoryRows.length > 1) {
+            const wsItemHistory = XLSX.utils.aoa_to_sheet(itemHistoryRows);
+            XLSX.utils.book_append_sheet(wb, wsItemHistory, 'Item History');
+        }
         
         // Save file
         XLSX.writeFile(wb, `FinanceTracker_${new Date().toISOString().split('T')[0]}.xlsx`);
