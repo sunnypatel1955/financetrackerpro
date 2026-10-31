@@ -550,6 +550,29 @@ function setupOptimizedEventListeners() {
         });
     });
 }
+// Scores average monthly growth over the last 12 months, or over all saved
+// months if there are fewer, so one bad month has little effect.
+// 0% a month or less = 0 points, 2.5% a month or more = 20 points.
+function calculateNetWorthGrowthScore(records) {
+    if (!records || records.length < 3) return 0;
+
+    const sorted = [...records].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const monthIndex = (record) => {
+        const date = new Date(record.date);
+        return date.getFullYear() * 12 + date.getMonth();
+    };
+
+    const newest = sorted[sorted.length - 1];
+    const targetMonth = monthIndex(newest) - 12;
+    const baseline = [...sorted].reverse().find(record => monthIndex(record) <= targetMonth) || sorted[0];
+    const monthsSpan = monthIndex(newest) - monthIndex(baseline);
+
+    if (baseline.netWorth <= 0 || monthsSpan <= 0) return 0;
+
+    const totalGrowthRate = ((newest.netWorth - baseline.netWorth) / baseline.netWorth) * 100;
+    return Math.min(20, Math.max(0, (totalGrowthRate / monthsSpan) * 8));
+}
+
 // Fixed calculateFinancialHealthScore function
 function calculateFinancialHealthScore() {
     console.log('calculateFinancialHealthScore function called');
@@ -599,25 +622,8 @@ function calculateFinancialHealthScore() {
     }
     
     // 5. Net Worth Growth Score (20 points max)
-    // 5. Net Worth Growth Score (20 points max)
-if (window.historicalNetWorth && window.historicalNetWorth.length >= 3) {
-    const recent = window.historicalNetWorth.slice(-3);
-    const oldestNetWorth = recent[0].netWorth;
-    const newestNetWorth = recent[recent.length - 1].netWorth;
-    if (oldestNetWorth > 0) {
-        // Calculate monthly growth rate
-        const monthsSpan = recent.length - 1; // Should be 2 for 3 records
-        const totalGrowthRate = ((newestNetWorth - oldestNetWorth) / oldestNetWorth) * 100;
-        const monthlyGrowthRate = totalGrowthRate / monthsSpan;
-        
-        // More realistic scoring:
-        // 0% monthly = 0 points
-        // 1% monthly = 10 points (12% annual)
-        // 2% monthly = 18 points (24% annual)
-        // 2.5%+ monthly = 20 points (30%+ annual)
-        scores.netWorthGrowth = Math.min(20, Math.max(0, monthlyGrowthRate * 8));
-    }
-}
+    scores.netWorthGrowth = calculateNetWorthGrowthScore(window.historicalNetWorth);
+
     const totalScore = Object.values(scores).reduce((sum, score) => sum + score, 0);
     
     return {
