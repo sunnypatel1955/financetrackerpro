@@ -652,6 +652,7 @@ function createTableRow(section, item) {
             break;
     }
 
+    addDragHandle(row);
     return row;
 }
 

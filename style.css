@@ -1498,7 +1498,7 @@ body.light-mode .table .form-control[readonly] {
    ========================================================================== */
 @media print {
     body { background: white !important; color: black !important; }
-    .sidebar, .top-bar, .btn, .toggle-btn, .remove-btn, .cookie-consent {
+    .sidebar, .top-bar, .btn, .toggle-btn, .remove-btn, .row-drag-handle, .cookie-consent {
         display: none !important;
     }
     .main-content { margin-left: 0 !important; padding: 0 !important; }
@@ -1764,4 +1764,29 @@ body.light-mode .table th.col-flow {
 #itemHistoryEntries .text-danger,
 #modalItemBreakdown .text-danger {
     color: var(--error-color) !important;
+}
+
+/* Row reordering */
+.table td.has-drag-handle {
+    position: relative;
+    padding-left: 30px;
+}
+
+.row-drag-handle {
+    position: absolute;
+    top: 50%;
+    left: 8px;
+    transform: translateY(-50%);
+    padding: 6px 4px;
+    color: var(--text-muted);
+    cursor: grab;
+    touch-action: none;
+}
+
+.row-drag-handle:hover {
+    color: var(--primary-color);
+}
+
+.sortable-chosen .row-drag-handle {
+    cursor: grabbing;
 }

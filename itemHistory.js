@@ -251,11 +251,20 @@ function buildItemSummaries(financeData, records) {
         });
     });
 
-    return [...summaries.values()].map(summary => ({
-        ...summary,
-        currentValue: summary.status === 'closed' ? 0 : (summary.currentValue ?? 0),
-        totalGrowthPercent: getTotalGrowthPercent(summary)
-    }));
+    // Active items follow the order of the tables; closed items come last
+    const tableOrder = [...(financeData.investments || []), ...(financeData.loans || [])].map(item => item.id);
+    const orderOf = (summary) => {
+        const index = tableOrder.indexOf(summary.id);
+        return index === -1 ? tableOrder.length : index;
+    };
+
+    return [...summaries.values()]
+        .sort((a, b) => orderOf(a) - orderOf(b))
+        .map(summary => ({
+            ...summary,
+            currentValue: summary.status === 'closed' ? 0 : (summary.currentValue ?? 0),
+            totalGrowthPercent: getTotalGrowthPercent(summary)
+        }));
 }
 
 function getTotalGrowthPercent(summary) {

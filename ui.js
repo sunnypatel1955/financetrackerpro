@@ -208,6 +208,7 @@ function addRow(tableId, event) {
     
     // Add input validation
     addInputValidation(row);
+    addDragHandle(row);
     
     // Append row with animation
     table.appendChild(row);
@@ -259,6 +260,7 @@ function addGoal(event) {
     `;
     
     addInputValidation(row);
+    addDragHandle(row);
     
     table.appendChild(row);
     setTimeout(() => {
@@ -366,6 +368,39 @@ function performRowRemoval(row, onRemoved) {
         if (onRemoved) onRemoved();
     }, 300);
 }
+
+// Gives a row the handle used to drag it to a new position
+function addDragHandle(row) {
+    const firstCell = row.querySelector('td');
+    if (!firstCell) return;
+    const handle = document.createElement('span');
+    handle.className = 'row-drag-handle';
+    handle.title = 'Drag to reorder';
+    handle.innerHTML = '<i class="fas fa-grip-vertical"></i>';
+    firstCell.classList.add('has-drag-handle');
+    firstCell.prepend(handle);
+}
+
+// update() rebuilds data in on-screen order, so dropping a row is enough to
+// save the new order. The tbody elements persist when rows are re-rendered.
+function initRowSorting() {
+    if (typeof Sortable === 'undefined') return;
+    ['investments', 'loans', 'income', 'expenses', 'goals'].forEach(tableId => {
+        const tbody = document.getElementById(tableId)?.querySelector('tbody');
+        if (!tbody) return;
+        Sortable.create(tbody, {
+            handle: '.row-drag-handle',
+            draggable: 'tr:not(.table-empty-state)',
+            animation: 150,
+            forceFallback: true,
+            onEnd: (event) => {
+                if (event.oldIndex !== event.newIndex) window.debouncedUpdate();
+            }
+        });
+    });
+}
+
+initRowSorting();
 
 // Add input validation
 function addInputValidation(row) {
