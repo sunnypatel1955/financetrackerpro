@@ -393,6 +393,8 @@ function initRowSorting() {
             draggable: 'tr:not(.table-empty-state)',
             animation: 150,
             forceFallback: true,
+            onChoose: () => document.body.classList.add('row-dragging'),
+            onUnchoose: () => document.body.classList.remove('row-dragging'),
             onEnd: (event) => {
                 if (event.oldIndex !== event.newIndex) window.debouncedUpdate();
             }

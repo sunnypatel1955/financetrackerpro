@@ -1783,6 +1783,14 @@ body.light-mode .table th.col-flow {
     touch-action: none;
 }
 
+/* Dragging a row must not also highlight the text it passes over */
+.row-drag-handle,
+body.row-dragging,
+body.row-dragging * {
+    -webkit-user-select: none;
+    user-select: none;
+}
+
 .row-drag-handle:hover {
     color: var(--primary-color);
 }
