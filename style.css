@@ -1738,6 +1738,24 @@ body.light-mode .table th.col-flow {
     white-space: nowrap;
 }
 
+.item-history-overall {
+    margin: 1rem 1.25rem 0.25rem;
+    color: var(--text-muted);
+}
+
+.item-history-overall strong {
+    color: var(--text-dark);
+}
+
+.item-history-separator {
+    margin: 0 0.5rem;
+}
+
+.item-history-returns {
+    margin-bottom: 0.75rem;
+    color: var(--text-muted);
+}
+
 .item-history-subheading {
     margin: 1.25rem 1.25rem 0.5rem;
     color: var(--text-muted);

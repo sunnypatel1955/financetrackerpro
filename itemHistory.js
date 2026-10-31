@@ -263,14 +263,86 @@ function buildItemSummaries(financeData, records) {
         .map(summary => ({
             ...summary,
             currentValue: summary.status === 'closed' ? 0 : (summary.currentValue ?? 0),
-            totalGrowthPercent: getTotalGrowthPercent(summary)
+            totalGrowthPercent: getTotalGrowthPercent(summary),
+            xirr: summary.type === 'loan' ? null : calculateXirr(getItemCashFlows(summary))
         }));
+}
+
+function getMoneyPutIn(summary) {
+    return summary.startValue + summary.entries.reduce((sum, entry) => sum + Math.max(entry.flow, 0), 0);
 }
 
 function getTotalGrowthPercent(summary) {
     if (summary.type === 'loan') return null;
-    const moneyPutIn = summary.startValue + summary.entries.reduce((sum, entry) => sum + Math.max(entry.flow, 0), 0);
+    const moneyPutIn = getMoneyPutIn(summary);
     return moneyPutIn > 0 ? roundMoney((summary.totalGrowth / moneyPutIn) * 100) : null;
+}
+
+function getMonthEnd(date) {
+    const d = new Date(date);
+    return new Date(d.getFullYear(), d.getMonth() + 1, 0, 12);
+}
+
+function getMonthMiddle(date) {
+    const d = new Date(date);
+    return new Date(d.getFullYear(), d.getMonth(), 15, 12);
+}
+
+// Money in/out counts on the 15th and saved values count as month-end.
+// Amounts are from the investor's side: paid in is negative, received positive.
+function getItemCashFlows(summary) {
+    const flows = [];
+    summary.entries.forEach(entry => {
+        if (entry.baseline) {
+            flows.push({ date: getMonthEnd(entry.date), amount: -entry.value });
+        } else if (entry.flow) {
+            flows.push({ date: getMonthMiddle(entry.date), amount: -entry.flow });
+        }
+    });
+
+    const last = summary.entries[summary.entries.length - 1];
+    if (last?.value > 0) {
+        flows.push({ date: getMonthEnd(last.date), amount: last.value });
+    }
+    return flows;
+}
+
+// Returns the yearly rate as a percentage, or null if there is no answer,
+// such as before any growth period exists or after a total loss.
+function calculateXirr(flows) {
+    const amounts = flows.filter(flow => flow.amount !== 0);
+    if (!amounts.some(flow => flow.amount > 0) || !amounts.some(flow => flow.amount < 0)) return null;
+
+    const times = amounts.map(flow => flow.date.getTime());
+    const firstTime = Math.min(...times);
+    if (firstTime === Math.max(...times)) return null;
+
+    const yearsOf = (flow) => (flow.date.getTime() - firstTime) / (365 * 24 * 60 * 60 * 1000);
+    const netValue = (rate) => amounts.reduce(
+        (sum, flow) => sum + flow.amount / Math.pow(1 + rate, yearsOf(flow)),
+        0
+    );
+
+    if (Math.abs(netValue(0)) < 0.005) return 0;
+
+    // Search outward from 0 so the answer closest to 0 is found first
+    const upward = [0, 0.1, 0.5, 1, 5, 10, 100, 1000, 100000, 10000000];
+    const downward = [0, -0.1, -0.5, -0.9, -0.99, -0.9999, -0.999999];
+    for (const steps of [upward, downward]) {
+        for (let i = 1; i < steps.length; i++) {
+            let low = steps[i - 1];
+            let high = steps[i];
+            if (netValue(low) * netValue(high) > 0) continue;
+
+            for (let round = 0; round < 200; round++) {
+                const middle = (low + high) / 2;
+                if (netValue(low) * netValue(middle) <= 0) high = middle;
+                else low = middle;
+            }
+            return roundMoney(((low + high) / 2) * 100);
+        }
+    }
+    return null;
 }
 
 // True only for items saved in an earlier month. A row created and removed in
@@ -330,6 +402,7 @@ function createSummaryRow(summary) {
         <td class="col-num">${formatSignedAmount(summary.totalFlow)}</td>
         <td class="col-num ${getGrowthClass(summary.type, summary.totalGrowth)}">${growthText}</td>
         <td class="col-num">${formatPercent(summary.totalGrowthPercent)}</td>
+        <td class="col-num">${formatPercent(summary.xirr)}</td>
         <td>${statusBadge}</td>
         <td>${detailsButton}</td>
     `;
@@ -340,11 +413,21 @@ function fillSummaryTable(tbody, summaries, emptyMessage) {
     tbody.innerHTML = '';
     if (summaries.length === 0) {
         const row = document.createElement('tr');
-        row.innerHTML = `<td colspan="8" class="text-center item-history-muted">${emptyMessage}</td>`;
+        row.innerHTML = `<td colspan="9" class="text-center item-history-muted">${emptyMessage}</td>`;
         tbody.appendChild(row);
         return;
     }
     summaries.forEach(summary => tbody.appendChild(createSummaryRow(summary)));
+}
+
+function getOverallReturns(summaries) {
+    const investments = summaries.filter(summary => summary.type === 'investment' && summary.entries.length > 0);
+    const totalGrowth = investments.reduce((sum, summary) => sum + summary.totalGrowth, 0);
+    const moneyPutIn = investments.reduce((sum, summary) => sum + getMoneyPutIn(summary), 0);
+    return {
+        returnSoFar: moneyPutIn > 0 ? roundMoney((totalGrowth / moneyPutIn) * 100) : null,
+        xirr: calculateXirr(investments.flatMap(getItemCashFlows))
+    };
 }
 
 function renderItemHistory() {
@@ -353,6 +436,10 @@ function renderItemHistory() {
     if (!activeBody || !closedBody) return;
 
     const summaries = buildItemSummaries(data, historicalNetWorth);
+    const overall = getOverallReturns(summaries);
+    document.getElementById('itemHistoryOverallReturn').textContent = formatPercent(overall.returnSoFar);
+    document.getElementById('itemHistoryOverallXirr').textContent = formatPercent(overall.xirr);
+
     fillSummaryTable(
         activeBody,
         summaries.filter(summary => summary.status !== 'closed'),
@@ -421,6 +508,9 @@ function showItemHistory(id) {
 
     const isLoan = summary.type === 'loan';
     document.getElementById('itemHistoryTitle').textContent = getItemLabel(summary);
+    document.getElementById('itemHistoryReturns').textContent = isLoan
+        ? ''
+        : `Return So Far: ${formatPercent(summary.totalGrowthPercent)} | XIRR: ${formatPercent(summary.xirr)}`;
     document.getElementById('itemHistoryFlowHeading').textContent = isLoan ? 'Paid/received' : 'Money in/out';
     document.getElementById('itemHistoryGrowthHeading').textContent = isLoan ? 'Interest' : 'Growth';
 

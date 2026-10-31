@@ -613,6 +613,12 @@
                             </button>
                         </div>
                         <div class="collapse show" id="itemHistoryCollapse">
+                            <p class="item-history-overall">
+                                All investments:
+                                Return So Far <strong id="itemHistoryOverallReturn">—</strong>
+                                <span class="item-history-separator">|</span>
+                                XIRR <strong id="itemHistoryOverallXirr">—</strong>
+                            </p>
                             <div class="table-container">
                                 <table class="table" id="itemHistoryActive">
                                     <thead>
@@ -622,7 +628,8 @@
                                             <th class="col-num">Current Value</th>
                                             <th class="col-num">Total In/Out</th>
                                             <th class="col-num">Growth / Interest</th>
-                                            <th class="col-num">Growth %</th>
+                                            <th class="col-num">Return So Far</th>
+                                            <th class="col-num">XIRR</th>
                                             <th class="col-fixed-sm">Status</th>
                                             <th class="col-actions-wide">History</th>
                                         </tr>
@@ -640,7 +647,8 @@
                                             <th class="col-num">Current Value</th>
                                             <th class="col-num">Total In/Out</th>
                                             <th class="col-num">Growth / Interest</th>
-                                            <th class="col-num">Growth %</th>
+                                            <th class="col-num">Return So Far</th>
+                                            <th class="col-num">XIRR</th>
                                             <th class="col-fixed-sm">Status</th>
                                             <th class="col-actions-wide">History</th>
                                         </tr>
@@ -827,6 +835,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
+                    <p class="item-history-returns" id="itemHistoryReturns"></p>
                     <div class="item-history-chart">
                         <canvas id="itemHistoryChart"></canvas>
                     </div>
